@@ -1,0 +1,35 @@
+[gd_scene format=3 uid="uid://3423t2ean6mk"]
+
+[ext_resource type="Script" uid="uid://do5rw3j28qyue" path="res://ShaderControl.gd" id="1_igbqt"]
+
+[node name="Slider" type="VBoxContainer" unique_id=65057760]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 1
+script = ExtResource("1_igbqt")
+
+[node name="ParamLabel" type="Label" parent="." unique_id=169520814]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/line_spacing = 1
+theme_override_font_sizes/font_size = 10
+text = "TEST LABEL"
+horizontal_alignment = 1
+
+[node name="HBoxContainer" type="HBoxContainer" parent="." unique_id=1393621367]
+layout_mode = 2
+
+[node name="ValueLabel" type="Label" parent="HBoxContainer" unique_id=1501995390]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="ParamSlider" type="HSlider" parent="HBoxContainer" unique_id=400931394]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+ticks_on_borders = true
+
+[connection signal="value_changed" from="HBoxContainer/ParamSlider" to="." method="_on_param_slider_value_changed"]
