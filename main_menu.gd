@@ -436,3 +436,58 @@ func stop_preview():
 func _on_stop_button_pressed():
 	is_playing_gif = false
 	# The _process function will handle the rest!
+	
+func create_preset_from_current_settings() -> ShaderPreset:
+	var mat = display_sprite.material as ShaderMaterial
+	if not mat: return null
+	
+	var new_preset = ShaderPreset.new()
+	var params = RenderingServer.get_shader_parameter_list(mat.shader.get_rid())
+	
+	for p in params:
+		# Skip the internal stuff we don't want to save
+		if p.name.begins_with("shader_parameter/") or p.name == "manual_time":
+			continue
+			
+		var current_val = mat.get_shader_parameter(p.name)
+		if current_val != null:
+			new_preset.set_param(p.name, current_val)
+			
+	return new_preset
+
+func save_preset_to_disk(preset_name: String):
+	var preset = create_preset_from_current_settings()
+	if preset:
+		var directory = "user://presets/"
+		if not DirAccess.dir_exists_absolute(directory):
+			DirAccess.make_dir_recursive_absolute(directory)
+			
+		var path = directory + preset_name + ".tres"
+		var error = ResourceSaver.save(preset, path)
+		
+		if error == OK:
+			print("Successfully saved 4D Preset: ", path)
+		else:
+			print("Error saving preset: ", error)
+
+func _on_save_preset_button_pressed():
+	# 1. Get the text from our new LineEdit node
+	var raw_name = $MarginContainer/HBoxContainer/LeftPanel/MarginContainer/VBoxContainer/VBoxContainer/MarginContainer/VBoxContainer/PresetNameEdit.text.strip_edges()
+	
+	# 2. Safety check: Don't save if the name is empty
+	if raw_name == "":
+		print("4D Error: Please enter a name for your preset!")
+		return
+		
+	# 3. Clean the name (remove spaces or weird characters for the file system)
+	var clean_name = raw_name.validate_filename()
+	
+	# 4. Call our save function with the typed name
+	save_preset_to_disk(clean_name)
+	
+	# 5. Optional: Clear the text box after saving
+		# 5. Clear the actual typed text
+	var input_node = $MarginContainer/HBoxContainer/LeftPanel/MarginContainer/VBoxContainer/VBoxContainer/MarginContainer/VBoxContainer/PresetNameEdit
+	input_node.text = "" # This clears the box
+	input_node.placeholder_text = "Enter New Name" # This shows the hint again
+	print("Preset ", clean_name, "' has been archived.")

@@ -91,8 +91,32 @@ layout_mode = 2
 size_flags_stretch_ratio = 0.2
 alignment = 1
 
+[node name="VBoxContainer" type="VBoxContainer" parent="CanvasLayer/MainMenu/MarginContainer/HBoxContainer/LeftPanel/MarginContainer/VBoxContainer" unique_id=1071716747]
+layout_mode = 2
+
+[node name="MarginContainer" type="MarginContainer" parent="CanvasLayer/MainMenu/MarginContainer/HBoxContainer/LeftPanel/MarginContainer/VBoxContainer/VBoxContainer" unique_id=924517206]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/margin_left = 15
+theme_override_constants/margin_top = 15
+theme_override_constants/margin_right = 15
+theme_override_constants/margin_bottom = 15
+
+[node name="VBoxContainer" type="VBoxContainer" parent="CanvasLayer/MainMenu/MarginContainer/HBoxContainer/LeftPanel/MarginContainer/VBoxContainer/VBoxContainer/MarginContainer" unique_id=1342915701]
+layout_mode = 2
+
+[node name="PresetNameEdit" type="LineEdit" parent="CanvasLayer/MainMenu/MarginContainer/HBoxContainer/LeftPanel/MarginContainer/VBoxContainer/VBoxContainer/MarginContainer/VBoxContainer" unique_id=1104055156]
+layout_mode = 2
+placeholder_text = "Enter a preset name..."
+
+[node name="SavePresetButton" type="Button" parent="CanvasLayer/MainMenu/MarginContainer/HBoxContainer/LeftPanel/MarginContainer/VBoxContainer/VBoxContainer/MarginContainer/VBoxContainer" unique_id=77727959]
+layout_mode = 2
+tooltip_text = "Save's the current values of all sliders in the right panel"
+text = "Save Preset"
+
 [node name="B_Import" type="Button" parent="CanvasLayer/MainMenu/MarginContainer/HBoxContainer/LeftPanel/MarginContainer/VBoxContainer" unique_id=177726377]
 layout_mode = 2
+tooltip_text = "Import a *.png or *.jpg from your file system"
 text = "Import Image"
 
 [node name="L_ColorSelect" type="Label" parent="CanvasLayer/MainMenu/MarginContainer/HBoxContainer/LeftPanel/MarginContainer/VBoxContainer" unique_id=1399327570]
@@ -243,10 +267,10 @@ alignment = 1
 [node name="MarginContainer" type="MarginContainer" parent="CanvasLayer/MainMenu/MarginContainer/HBoxContainer/RightPanel" unique_id=1514582467]
 layout_mode = 2
 size_flags_vertical = 3
-theme_override_constants/margin_left = 20
-theme_override_constants/margin_top = 20
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 10
 theme_override_constants/margin_right = 20
-theme_override_constants/margin_bottom = 20
+theme_override_constants/margin_bottom = 10
 
 [node name="ScrollContainer" type="ScrollContainer" parent="CanvasLayer/MainMenu/MarginContainer/HBoxContainer/RightPanel/MarginContainer" unique_id=976472325]
 clip_contents = false
@@ -295,6 +319,7 @@ min_value = 2.0
 max_value = 60.0
 value = 10.0
 
+[connection signal="pressed" from="CanvasLayer/MainMenu/MarginContainer/HBoxContainer/LeftPanel/MarginContainer/VBoxContainer/VBoxContainer/MarginContainer/VBoxContainer/SavePresetButton" to="CanvasLayer/MainMenu" method="_on_save_preset_button_pressed"]
 [connection signal="pressed" from="CanvasLayer/MainMenu/MarginContainer/HBoxContainer/LeftPanel/MarginContainer/VBoxContainer/B_Import" to="CanvasLayer/MainMenu" method="_on_open_button_pressed"]
 [connection signal="color_changed" from="CanvasLayer/MainMenu/MarginContainer/HBoxContainer/LeftPanel/MarginContainer/VBoxContainer/ColorPickerButton" to="CanvasLayer/MainMenu" method="_on_color_picker_button_color_changed"]
 [connection signal="file_selected" from="CanvasLayer/MainMenu/MarginContainer/HBoxContainer/LeftPanel/MarginContainer/VBoxContainer/OpenFile" to="CanvasLayer/MainMenu" method="_on_file_dialog_file_selected"]
