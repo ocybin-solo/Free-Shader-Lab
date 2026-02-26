@@ -518,13 +518,28 @@ func refresh_preset_list():
 func _on_preset_button_pressed(file_name: String):
 	var path = "user://presets/" + file_name
 	var preset = ResourceLoader.load(path) as ShaderPreset
+	if not preset: return
 	
-	if preset:
-		var mat = display_sprite.material as ShaderMaterial
-		for p_name in preset.parameters.keys():
-			var val = preset.get_param(p_name)
-			mat.set_shader_parameter(p_name, val)
+	var mat = display_sprite.material as ShaderMaterial
+	var tween = create_tween().set_parallel(true).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	
+	for p_name in preset.parameters.keys():
+		var start_val = mat.get_shader_parameter(p_name)
+		var end_val = preset.get_param(p_name)
+		if start_val == null: continue
+
+		# 1. Update the Shader (The Math)
+		tween.tween_property(mat, "shader_parameter/" + p_name, end_val, 2.0)
 		
-		# Pro-tip: Refresh your UI sliders to match the new values!
-		create_dynamic_controls() 
-		print("Teleported to: ", file_name)
+		# 2. Update the UI Sliders (The Visuals)
+		# We look for a slider in your container that matches the parameter name
+		for ctrl in controls_container.get_children():
+			# Check if the slider's internal name matches (handling the 'q_rot.x' dots)
+			if ctrl.has_method("get_param_name") and ctrl.get_param_name().begins_with(p_name):
+				# Tween the slider's visual value so it 'slides' with the math
+				# (Note: Use 'set_value_no_signal' if your slider script has it to prevent loops)
+				tween.tween_property(ctrl, "current_value", end_val, 2.0)
+
+	# No need to 'rebuild' the controls at the end anymore, 
+	# because they traveled there with the tween!
+	print("4D Transition initiated: ", file_name)
