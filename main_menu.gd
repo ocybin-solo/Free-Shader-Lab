@@ -102,7 +102,7 @@ func _process(delta: float) -> void:
 func _on_quit_button_pressed():
 	get_tree().quit()
 
-# --- EXPORT PRESET LOGIC ---
+# --- EXPORT PRESET LOGIC --- THIS SECTION WRITES TO THE CLIPBOARD
 
 func _on_export_logic_button_pressed():
 	var mat = display_sprite.material as ShaderMaterial
@@ -128,14 +128,24 @@ func _on_export_logic_button_pressed():
 			if abs(val - 0.0) < 0.001: is_default = true
 		elif p.type == TYPE_COLOR:
 			if val.is_equal_approx(Color.WHITE): is_default = true
-			
+		
+				# --- ADD THIS: 4D Default Check ---
+		elif p.type == TYPE_QUATERNION or p.type == TYPE_VECTOR4:
+			if val is Quaternion and val.is_equal_approx(Quaternion(0, 0, 0, 1)):
+				is_default = true
+		
 		if not is_default:
 			active_params.append(p.name)
 			if p.type == TYPE_FLOAT:
 				output += "mat.set_shader_parameter('%s', %.3f)\n" % [p.name, val]
 			elif p.type == TYPE_COLOR:
 				output += "mat.set_shader_parameter('%s', Color(%.2f, %.2f, %.2f))\n" % [p.name, val.r, val.g, val.b]
-
+						# --- ADD THIS: 4D Writer ---
+			elif p.type == TYPE_QUATERNION or p.type == TYPE_VECTOR4:
+				output += "mat.set_shader_parameter('%s', Quaternion(%.3f, %.3f, %.3f, %.3f))\n" % [p.name, val.x, val.y, val.z, val.w]
+			
+			
+			
 	var shader_code = FileAccess.get_file_as_string(mat.shader.resource_path)
 	var lines = shader_code.split("\n")
 
@@ -258,6 +268,7 @@ func _on_dynamic_value_changed(p_name: String, value: float):
 		# It's a standard single slider (like 'max_steps' or 'ray_angle')
 		mat.set_shader_parameter(p_name, value)
 
+#  COPY TO CLIPBOARD FUNCTION
 func parse_shader_descriptions(path):
 	var dict = {}
 	if not FileAccess.file_exists(path): return dict
