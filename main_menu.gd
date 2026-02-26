@@ -94,22 +94,31 @@ func _process(delta: float) -> void:
 			# 3. UPDATE TEXTURE
 			GifPreview.texture = ImageTexture.create_from_image(captured_frames[preview_frame_index])
 
-			
-	# --- 2. LIVE SHADER MODE ---
+		# --- 2. LIVE SHADER MODE ---
 	else:
-		# Toggle visibility: Show live view, hide preview
 		GifPreview.visible = false
 		viewport_container.visible = true
 		stop_button.visible = false
-		preview_speed_slider.visible = false # Hide the slider!
-		fps_label.visible = false # Hide label when not in preview
+		preview_speed_slider.visible = false 
+		fps_label.visible = false 
 		
 		if not is_exporting:
 			var mat = display_sprite.material as ShaderMaterial
 			if mat:
-				# Use a fixed 1.0 speed for the live preview so it's easy to see
+				# 1. Increment our master clock
 				preview_elapsed_time += delta
-				mat.set_shader_parameter("manual_time", fmod(preview_elapsed_time, 1.0))
+				
+				# 2. Check the "Sync" toggle we added to the shader
+				# We use 'get_shader_parameter' to see if the user wants strict loops
+				var sync_mode = mat.get_shader_parameter("sync_to_loop")
+				
+				# 3. Apply the time logic
+				if sync_mode > 0.5:
+					# LOOP MODE: Snap back to 0.0 every second for export preview
+					mat.set_shader_parameter("manual_time", fmod(preview_elapsed_time, 1.0))
+				else:
+					# ORGANIC MODE: Continuous climb for smooth slow-motion
+					mat.set_shader_parameter("manual_time", preview_elapsed_time)
 			
 func _on_quit_button_pressed():
 	get_tree().quit()
@@ -365,6 +374,10 @@ func export_animated_strip(path: String, frame_count: int):
 	var w = sub_viewport.size.x
 	var h = sub_viewport.size.y
 	var mat = display_sprite.material as ShaderMaterial
+	# --- NEW: AUTO-SYNC FOR EXPORT ---
+	# We force the shader into "Loop Mode" regardless of the UI slider
+	var user_sync_setting = mat.get_shader_parameter("sync_to_loop")
+	mat.set_shader_parameter("sync_to_loop", 1.0)
 	
 	var rows = int(rows_input.value)
 	var cols = int(ceil(float(frame_count) / float(rows)))
@@ -395,8 +408,10 @@ func export_animated_strip(path: String, frame_count: int):
 	
 	sheet.save_png(path)
 	
+	
+	
 	# --- 2. TRANSITION TO PREVIEW ---
-	mat.set_shader_parameter("manual_time", 0.0)
+	mat.set_shader_parameter("sync_to_loop", user_sync_setting)
 	is_exporting = false
 	progress_bar.visible = false
 	
@@ -549,16 +564,25 @@ func _on_preset_button_pressed(file_name: String):
 	if not preset: return
 	
 	var mat = display_sprite.material as ShaderMaterial
-	var tween = create_tween().set_parallel(true).set_trans(Tween.TRANS_LINEAR)
+	# We use TRANS_SINE for a "softer" start and stop to the transition
+	var tween = create_tween().set_parallel(true).set_trans(Tween.TRANS_SINE)
 
 	for p_name in preset.parameters.keys():
+		# --- CRITICAL: SKIP MANUAL_TIME ---
+		# This lets the app's clock keep ticking naturally while values shift
+		if p_name == "manual_time": continue
+		
 		var start_val = mat.get_shader_parameter(p_name)
 		var end_val = preset.get_param(p_name)
+		
+		# Set Sync instantly to avoid mid-tween math glitches
+		if p_name == "sync_to_loop":
+			mat.set_shader_parameter(p_name, end_val)
+			continue
+
 		if start_val == null: continue
 
 		# --- 1. SHADER MATH TWEENING ---
-		# We use 'tween_property' for standard numbers and colors
-		# But for Quaternions, we use 'tween_method' to ensure a smooth 4D Slerp
 		if start_val is Quaternion and end_val is Quaternion:
 			tween.tween_method(
 				func(v): mat.set_shader_parameter(p_name, v),
@@ -567,31 +591,25 @@ func _on_preset_button_pressed(file_name: String):
 				transition_time
 			)
 		else:
-			# Handles Floats, Vector4s, and Colors
 			tween.tween_property(mat, "shader_parameter/" + p_name, end_val, transition_time)
 		
 		# --- 2. UI SLIDER TWEENING ---
 		for ctrl in controls_container.get_children():
-			# Ensure we are looking at the right control
 			if not ctrl.has_method("get_param_name"): continue
-			
 			var ctrl_name = ctrl.get_param_name()
 			
-			# Case A: Standard Float (e.g., 'hyperbolic_bend')
 			if ctrl_name == p_name:
 				tween.tween_property(ctrl.slider, "value", end_val, transition_time)
-			
-			# Case B: 4D Axis Sliders (e.g., 'q_rot.x')
 			elif ctrl_name.begins_with(p_name + "."):
-				var axis = ctrl_name.split(".")[1]
-				var axis_val = end_val[axis] # Pulls x, y, z, or w from the 4D vector
-				tween.tween_property(ctrl.slider, "value", axis_val, transition_time)
+				var parts = ctrl_name.split(".")
+				var axis = parts[1]
+				
+				# Fixed type check for Vector4/Quaternion
+				if end_val is Vector4 or end_val is Quaternion:
+					var axis_val = end_val[axis]
+					tween.tween_property(ctrl.slider, "value", axis_val, transition_time)
 
-		# --- 3. COLOR PICKER TWEENING ---
-		if p_name == "mod_color" and color_picker:
-			tween.tween_property(color_picker, "color", end_val, transition_time)
-
-	print("4D Type-Safe Sweep: ", file_name)
+	print("Smooth Transition Initiated: ", file_name)
 
 func _on_transition_speed_changed(value):
 	transition_time = value

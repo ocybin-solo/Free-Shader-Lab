@@ -9,6 +9,7 @@
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_cm0pq"]
 shader = ExtResource("2_r0du0")
 shader_parameter/mod_color = Color(1, 1, 1, 1)
+shader_parameter/sync_to_loop = 0.0
 shader_parameter/mask_radius = 1.0
 shader_parameter/mask_stretch = 1.0
 shader_parameter/swirl_strength = 0.0

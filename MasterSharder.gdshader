@@ -6,7 +6,7 @@ shader_type canvas_item;
 uniform vec4 mod_color : source_color = vec4(1.0);
 
 // DESC: ON = Perfect Loops for Exports. OFF = Smooth movement for live play.
-//uniform float sync_to_loop : hint_range(0.0, 1.0, 1.0) = 1.0;
+uniform float sync_to_loop : hint_range(0.0, 1.0, 1.0) = 0.0;
 
 // DESC: The image won't draw outside the size of this circle
 uniform float mask_radius : hint_range(0.0, 1.0, 0.01) = 1.0;
@@ -15,11 +15,11 @@ uniform float mask_radius : hint_range(0.0, 1.0, 0.01) = 1.0;
 uniform float mask_stretch : hint_range(0.1, 6.1) = 1.0;
 
 // DESC: Swirls the image - Use this in combination with Swirl Speed to animate the Kaleidoscope
-uniform float swirl_strength : hint_range(-10.0, 10.0, 1.0) = 0.0;
+uniform float swirl_strength : hint_range(0.0, 10.0, 0.1) = 0.0;
 
 
-// DESC: Number of full rotations per animated loop (Use this in combination with swirl strength)
-uniform float swirl_speed : hint_range(0.0, 6.0, 1.0) = 0.0;
+// DESC: Rotates when combined with Swirl Strength > 0
+uniform float swirl_speed : hint_range(-4.0, 4.0, 0.1) = 0.0;
 
 // DESC:  Radial Kaleidocsope - How many splits?
 uniform float kaleido_sides : hint_range(1.0, 15.0, 1.0) = 1.0;
@@ -32,25 +32,25 @@ uniform float fold_number : hint_range(0.0, 8.0, 1.0) = 0.0;
 // DESC: ZOOM IN OR OUT WARPING THE IMAGE 
 uniform float fold_zoom : hint_range(0.0, 6.0, 0.1) = 1.0;
 // DESC: Controls rotation speed of the fractal folds. Set to 0.0 for static folds.
-uniform float fold_rot_speed : hint_range(0.0, 5.0, 1.0) = 0.0;
+uniform float fold_rot_speed : hint_range(0.0, 5.0, 0.1) = 0.0;
 // DESC: 1.0 = Off, 2.0+ = Grid Tiling. Use whole numbers for perfect loops.
 uniform float hex_scale : hint_range(1.0, 10.0, 1.0) = 1.0;
 
 // DESC: Controls rotation speed of individual hex tiles. Set to 0.0 to stop spinning.
-uniform float hex_rot_speed : hint_range(0.0, 5.0, 1.0) = 0.0;
+uniform float hex_rot_speed : hint_range(0.0, 5.0, 0.1) = 0.0;
 
 // DESC:  4-Way Mirror
 uniform float mirror_4way : hint_range(0.0, 1.0, 1.0) = 0.0;
 
 //RAY MARCHING DECLARATIONS
 // DESC: RAY ANGLE
-uniform float ray_angle : hint_range(0.0, 6.28) = 0.0;
+uniform float ray_angle : hint_range(0.0, 6.28, 0.5) = 0.0;
 // DESC: HIGH VALUES SEEM GOOD HERE - IN COMBO W OTHER RAY-MARCHING SLIDERS
 uniform float max_steps : hint_range(10.0, 300.0, 1.0) = 100.0;
 // DESC: LOW VALUES SEEM BETTER TO ME - THIS IS A RAY MARCHING SLIDER
-uniform float step_length : hint_range(0.001, 0.1) = 0.01;
+uniform float step_length : hint_range(0.001, 0.1, 0.001) = 0.01;
 // DESC: THIS LOOKS LIKE SHINING A LIGHT FROM A DIRECTION - RAY MARCHING
-uniform float ray_intensity : hint_range(0.0, 1.0) = 0.0; // Default to 0 (Off)
+uniform float ray_intensity : hint_range(0.0, 1.0, 0.1) = 0.0; // Default to 0 (Off)
 // DESC: RAY-MARCHING COLOR
 uniform vec4 ray_color : source_color = vec4(1.0, 0.5, 0.0, 1.0);
 // DESC: BENDS THE IMAGE IN A 4-D SORTA WAY
@@ -138,7 +138,8 @@ if (fold_number > 0.5) {
         // Use the new speed uniform instead of the hardcoded 0.1
         // This ensures the fractal stays still unless you move the slider
         if (fold_rot_speed > 0.01) {
-            float a_fold = manual_time * tau * floor(fold_rot_speed);
+            float speed_choice = mix(fold_rot_speed, floor(fold_rot_speed), sync_to_loop);
+			float a_fold = manual_time * tau * speed_choice;
             float c_f = cos(a_fold); float s_f = sin(a_fold);
             uv = vec2(uv.x * c_f - uv.y * s_f, uv.x * s_f + uv.y * c_f);
         }
@@ -183,10 +184,12 @@ if (hex_scale > 1.1) {
 		uv = uv * (1.0 + r * r * fisheye);
 	}
 
-	// WAVE
-	if (wave_strength > 0.0) {
-		uv.x += sin(uv.y * 10.0 + manual_time * tau) * (wave_strength * 0.05);
-	}
+// WAVE
+if (wave_strength > 0.01) {
+    // Sync the wave frequency so it finishes exactly where it started
+    float wave_sync = mix(10.0, floor(10.0), sync_to_loop); 
+    uv.x += sin(uv.y * wave_sync + manual_time * tau) * (wave_strength * 0.05);
+}
 
 	// PIXELATE
 	if (pixelate > 0.0) {
@@ -195,13 +198,15 @@ if (hex_scale > 1.1) {
 		uv = floor(uv * size * f) / (size * f);
 	}
 
-		// SWIRL
-	if (swirl_strength > 0.0) {
-		float dist = length(uv);
-		float angle = (swirl_strength * dist) + (manual_time * tau * swirl_speed);
-		float c = cos(angle); float s = sin(angle);
-		uv = vec2(uv.x * c - uv.y * s, uv.x * s + uv.y * c);
-	}
+// SWIRL
+if (swirl_strength > 0.01) {
+    float dist = length(uv);
+    // Snap the swirl rotation speed
+    float s_speed = mix(swirl_speed, floor(swirl_speed), sync_to_loop);
+    float angle = (swirl_strength * dist) + (manual_time * tau * s_speed);
+    float c = cos(angle); float s = sin(angle);
+    uv = vec2(uv.x * c - uv.y * s, uv.x * s + uv.y * c);
+}
 
 // --- POINCARÉ DISK DISTORTION ---
 // This warps the actual image geometry
@@ -262,7 +267,8 @@ if (tumble_strength > 0.0) {
 	// --- 4. SAMPLING & COLOR EFFECTS ---
 	vec4 tex;
 	if (rgb_split > 0.0) {
-		float split_offset = rgb_split * sin(manual_time * tau);
+	    float split_speed = mix(1.0, floor(1.0), sync_to_loop);
+	    float split_offset = rgb_split * sin(manual_time * tau * split_speed);
 		float r = texture(TEXTURE, wrapped_uv + vec2(split_offset, 0.0)).r;
 		float g = texture(TEXTURE, wrapped_uv).g;
 		float b = texture(TEXTURE, wrapped_uv - vec2(split_offset, 0.0)).b;
@@ -279,8 +285,11 @@ if (ray_intensity > 0.01) {
     float hit_dist = -1.0;
     float final_angle = ray_angle; 
 
+
     for (int i = 0; i < int(max_steps); i++) { // Cast to int here!
         float d_center = length(current_pos - 0.5);
+		float pulse_freq = mix(1.0, floor(1.0), sync_to_loop);
+		float portal_pulse = sin(manual_time * tau * pulse_freq + (1.0 / (d_center + 0.01)));
         final_angle += d_center * (hyperbolic_bend * 0.2);
         vec2 bent_dir = vec2(cos(final_angle), sin(final_angle));
         
@@ -334,7 +343,9 @@ if (plasma_strength > 0.0) {
     // By using tau * a whole number (e.g., 5.0), the wave starts 
     // and ends at the same phase (0 and 1.0)
     float ring_count = 5.0; // Higher = more rings
-    float v = sin(dist * (tau * ring_count) - manual_time * tau);
+      // Snap the wave movement speed
+    float p_speed = mix(1.0, floor(1.0), sync_to_loop);
+    float v = sin(dist * (tau * ring_count) - manual_time * tau * p_speed);
     
     // 3. Simple color mapping that also uses tau for perfect color loops
     vec3 plasma_colors;
@@ -365,7 +376,9 @@ if (hue_shift_speed > 0.5) {
     
     // 2. Rotate the Chrominance (color) based on time
     // Ensure hue_shift_speed is a whole number for a perfect loop!
-    float hue = manual_time * tau * floor(hue_shift_speed);
+    // Instead of: float hue = manual_time * tau * floor(hue_shift_speed);
+	float hue_speed = mix(hue_shift_speed, floor(hue_shift_speed), sync_to_loop);
+	float hue = manual_time * tau * hue_speed;
     
     float chroma_cos = cos(hue);
     float chroma_sin = sin(hue);
@@ -406,7 +419,8 @@ if (hue_shift_speed > 0.5) {
 		rainbow = rainbow * 0.5 + 0.5;
 		
 		// 3. Apply a pulsing "glow" intensity using a sine wave
-		float glow = sin(manual_time * tau) * 0.5 + 0.5;
+		  float r_speed = mix(1.0, floor(1.0), sync_to_loop);
+   		 float glow = sin(manual_time * tau * r_speed) * 0.5 + 0.5;
 		
 		// 4. Mix it into the final texture
 		vec3 rainbow_final = mix(tex.rgb, rainbow, rainbow_pulse * glow);
