@@ -28,6 +28,7 @@ shader_parameter/ray_color = Color(1, 0.5, 0, 1)
 shader_parameter/hyperbolic_bend = 0.0
 shader_parameter/q_rot = Vector4(0, 0, 0, 1)
 shader_parameter/tumble_strength = 0.0
+shader_parameter/glitch_factor = 0.0
 shader_parameter/wave_strength = 0.0
 shader_parameter/fisheye = 0.0
 shader_parameter/hue_shift_speed = 0.0

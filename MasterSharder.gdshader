@@ -59,6 +59,8 @@ uniform float hyperbolic_bend : hint_range(-5.0, 5.0) = 0.0;
 uniform vec4 q_rot = vec4(0.0, 0.0, 0.0, 1.0); // x, y, z, w (1.0 is no rotation)     // FIRST QUATERNION BASED SHADERS
 // DESC : QUATERNION UV TUMBLER
 uniform float tumble_strength : hint_range(0.0, 1.0) = 0.0;
+// DESC : Corrupt the "purity" of the math, LOL 
+uniform float glitch_factor : hint_range(0.0, 1.0) = 0.0;
 
 // DESC: Adds a liquid-like waving distortion.
 uniform float wave_strength : hint_range(0.0, 1.0, 0.01) = 0.0;
@@ -229,21 +231,22 @@ if (abs(hyperbolic_bend) > 0.1) {
 }
 
 
-// --- QUATERNION UV TUMBLE ---
+// --- QUATERNION UV TUMBLE (WITH GLITCH MODE) ---
 if (tumble_strength > 0.0) {
-    // 0. NORMALIZE (Ensures the 4D rotation is a perfect sphere)
-    vec4 q = normalize(q_rot); 
+    // 0. The Glitch Mix: 0.0 = Pure Sphere, 1.0 = Out of Whack
+    vec4 q_pure = normalize(q_rot);
+    vec4 q = mix(q_pure, q_rot, glitch_factor); 
     
-    // 1. Map UV to a 3D unit sphere
+    // 1. Map UV to 3D unit sphere (the "bubble")
     vec3 p = vec3(uv, sqrt(max(0.0, 1.0 - dot(uv, uv))));
     
-    // 2. Use 'q' instead of 'q_rot' for the math
+    // 2. Quaternion Rotation Math
     vec3 q_xyz = q.xyz;
     float q_w = q.w;
     vec3 temp = cross(q_xyz, p) + q_w * p;
     vec3 p_rotated = p + 2.0 * cross(q_xyz, temp);
     
-    // 3. Project back to 2D
+    // 3. Project back to 2D and mix based on strength
     uv = mix(uv, p_rotated.xy, tumble_strength);
 }
 
