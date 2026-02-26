@@ -45,6 +45,7 @@ func _ready():
 	var tween = create_tween()
 	tween.tween_property(warning_label, "modulate:a", 0.0, 10.0)
 	tween.tween_callback(warning_label.hide)
+	refresh_preset_list()
 	
 func _process(delta: float) -> void:
 	if is_playing_gif and captured_frames.size() > 0:
@@ -102,9 +103,7 @@ func _process(delta: float) -> void:
 func _on_quit_button_pressed():
 	get_tree().quit()
 
-# --- EXPORT PRESET LOGIC --- THIS SECTION WRITES TO THE CLIPBOARD
-
-func _on_export_logic_button_pressed():
+func _on_export_logic_button_pressed(): 
 	var mat = display_sprite.material as ShaderMaterial
 	if not mat or not mat.shader: return
 
@@ -175,9 +174,7 @@ func _on_export_logic_button_pressed():
 	output += "\tCOLOR = tex;\n}"
 	DisplayServer.clipboard_set(output)
 
-# --- DYNAMIC UI GENERATION ---
-
-func create_dynamic_controls():
+func create_dynamic_controls(): # --- DYNAMIC UI GENERATION ---
 	var mat = display_sprite.material as ShaderMaterial
 	if not mat or not mat.shader: return
 	
@@ -268,7 +265,6 @@ func _on_dynamic_value_changed(p_name: String, value: float):
 		# It's a standard single slider (like 'max_steps' or 'ray_angle')
 		mat.set_shader_parameter(p_name, value)
 
-#  COPY TO CLIPBOARD FUNCTION
 func parse_shader_descriptions(path):
 	var dict = {}
 	if not FileAccess.file_exists(path): return dict
@@ -292,8 +288,6 @@ func parse_shader_descriptions(path):
 			dict[u_name] = last_desc
 			last_desc = ""
 	return dict
-
-# --- VIEWPORT & FILE DIALOG ---
 
 func _input(event):
 	if not viewport_container.get_global_rect().has_point(get_global_mouse_position()):
@@ -327,8 +321,6 @@ func _on_file_dialog_file_selected(path: String):
 			export_animated_strip(path, int(frame_count_input.value))
 		else:
 			save_single_frame(path)
-
-# --- EXPORT LOGIC ---
 
 func save_single_frame(path):
 	await RenderingServer.frame_post_draw
@@ -472,7 +464,7 @@ func save_preset_to_disk(preset_name: String):
 
 func _on_save_preset_button_pressed():
 	# 1. Get the text from our new LineEdit node
-	var raw_name = $MarginContainer/HBoxContainer/LeftPanel/MarginContainer/VBoxContainer/VBoxContainer/MarginContainer/VBoxContainer/PresetNameEdit.text.strip_edges()
+	var raw_name = $MarginContainer/HBoxContainer/LeftPanel/MarginContainer/VBoxContainer/PresetContainer/MarginContainer/VBoxContainer/PresetNameEdit.text.strip_edges()
 	
 	# 2. Safety check: Don't save if the name is empty
 	if raw_name == "":
@@ -487,7 +479,52 @@ func _on_save_preset_button_pressed():
 	
 	# 5. Optional: Clear the text box after saving
 		# 5. Clear the actual typed text
-	var input_node = $MarginContainer/HBoxContainer/LeftPanel/MarginContainer/VBoxContainer/VBoxContainer/MarginContainer/VBoxContainer/PresetNameEdit
+	var input_node = $MarginContainer/HBoxContainer/LeftPanel/MarginContainer/VBoxContainer/PresetContainer/MarginContainer/VBoxContainer/PresetNameEdit
 	input_node.text = "" # This clears the box
 	input_node.placeholder_text = "Enter New Name" # This shows the hint again
 	print("Preset ", clean_name, "' has been archived.")
+	refresh_preset_list() 
+	
+func refresh_preset_list():
+	var container = %PresetListContainer
+	
+	# 1. Clear existing buttons
+	for child in container.get_children():
+		child.queue_free()
+		
+	# 2. Open the directory
+	var path = "user://presets/"
+	if not DirAccess.dir_exists_absolute(path):
+		return
+		
+	var dir = DirAccess.open(path)
+	dir.list_dir_begin()
+	
+	var file_name = dir.get_next()
+	while file_name != "":
+		if not dir.current_is_dir() and file_name.ends_with(".tres"):
+			# 3. Create a button for this "Trip"
+			var btn = Button.new()
+			btn.text = file_name.replace(".tres", "")
+			btn.alignment = HorizontalAlignment.HORIZONTAL_ALIGNMENT_LEFT
+			
+			# 4. Connect the button to a load function
+			btn.pressed.connect(_on_preset_button_pressed.bind(file_name))
+			
+			container.add_child(btn)
+			
+		file_name = dir.get_next()
+		
+func _on_preset_button_pressed(file_name: String):
+	var path = "user://presets/" + file_name
+	var preset = ResourceLoader.load(path) as ShaderPreset
+	
+	if preset:
+		var mat = display_sprite.material as ShaderMaterial
+		for p_name in preset.parameters.keys():
+			var val = preset.get_param(p_name)
+			mat.set_shader_parameter(p_name, val)
+		
+		# Pro-tip: Refresh your UI sliders to match the new values!
+		create_dynamic_controls() 
+		print("Teleported to: ", file_name)

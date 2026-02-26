@@ -33,8 +33,4 @@ layout_mode = 2
 size_flags_horizontal = 3
 ticks_on_borders = true
 
-[node name="Button" type="Button" parent="HBoxContainer" unique_id=951576225]
-layout_mode = 2
-text = " "
-
 [connection signal="value_changed" from="HBoxContainer/ParamSlider" to="." method="_on_param_slider_value_changed"]

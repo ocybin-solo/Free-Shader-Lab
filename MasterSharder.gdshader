@@ -13,7 +13,7 @@ uniform float mask_radius : hint_range(0.0, 1.0, 0.01) = 0.5;
 uniform float mask_stretch : hint_range(0.1, 5.0) = 1.0;
 
 // DESC: Swirls the image - Use this in combination with Swirl Speed to animate the Kaleidoscope
-uniform float swirl_strength : hint_range(0.0, 10.0, 0.5) = 0.0;
+uniform float swirl_strength : hint_range(-10.0, 10.0, 1.0) = 0.0;
 
 
 // DESC: Number of full rotations per animated loop (Use this in combination with swirl strength)
