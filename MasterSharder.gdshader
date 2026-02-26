@@ -5,19 +5,21 @@ shader_type canvas_item;
 
 uniform vec4 mod_color : source_color = vec4(1.0);
 
+// DESC: ON = Perfect Loops for Exports. OFF = Smooth movement for live play.
+//uniform float sync_to_loop : hint_range(0.0, 1.0, 1.0) = 1.0;
 
 // DESC: The image won't draw outside the size of this circle
-uniform float mask_radius : hint_range(0.0, 1.0, 0.01) = 0.5;
+uniform float mask_radius : hint_range(0.0, 1.0, 0.01) = 1.0;
 // --- 1. COORDINATE WARPING (UV) ---
 // DESC: stretch a mask to hide outside the radius
-uniform float mask_stretch : hint_range(0.1, 5.0) = 1.0;
+uniform float mask_stretch : hint_range(0.1, 6.1) = 1.0;
 
 // DESC: Swirls the image - Use this in combination with Swirl Speed to animate the Kaleidoscope
 uniform float swirl_strength : hint_range(-10.0, 10.0, 1.0) = 0.0;
 
 
 // DESC: Number of full rotations per animated loop (Use this in combination with swirl strength)
-uniform float swirl_speed : hint_range(-6.0, 6.0, 1.0) = 0.0;
+uniform float swirl_speed : hint_range(0.0, 6.0, 1.0) = 0.0;
 
 // DESC:  Radial Kaleidocsope - How many splits?
 uniform float kaleido_sides : hint_range(1.0, 15.0, 1.0) = 1.0;
@@ -26,9 +28,9 @@ uniform float kaleido_sides : hint_range(1.0, 15.0, 1.0) = 1.0;
 
 // 1a NEW FRACTAL EFFECTS
 // DESC:  # of geometric folds 
-uniform float fold_number : hint_range(0.0, 8.0, 1.0) = 0.1;
+uniform float fold_number : hint_range(0.0, 8.0, 1.0) = 0.0;
 // DESC: ZOOM IN OR OUT WARPING THE IMAGE 
-uniform float fold_zoom : hint_range(0.0, 5.0, 0.1) = 0.0;
+uniform float fold_zoom : hint_range(0.0, 6.0, 0.1) = 1.0;
 // DESC: Controls rotation speed of the fractal folds. Set to 0.0 for static folds.
 uniform float fold_rot_speed : hint_range(0.0, 5.0, 1.0) = 0.0;
 // DESC: 1.0 = Off, 2.0+ = Grid Tiling. Use whole numbers for perfect loops.
@@ -58,7 +60,7 @@ uniform float hyperbolic_bend : hint_range(-5.0, 5.0) = 0.0;
 // DESC: QUATERNIONS?
 uniform vec4 q_rot = vec4(0.0, 0.0, 0.0, 1.0); // x, y, z, w (1.0 is no rotation)     // FIRST QUATERNION BASED SHADERS
 // DESC : QUATERNION UV TUMBLER
-uniform float tumble_strength : hint_range(0.0, 1.0) = 0.0;
+uniform float tumble_strength : hint_range(0.0, 1.0) = 0.5;
 // DESC : Corrupt the "purity" of the math, LOL 
 uniform float glitch_factor : hint_range(0.0, 1.0) = 0.0;
 

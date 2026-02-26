@@ -27,6 +27,7 @@ var captured_frames: Array = [] # This holds the actual Image objects
 
 # How fast the GIF plays (e.g., 0.1s per frame = 10 FPS)
 @export var frame_delay : float = 0.1 
+var original_shader_defaults: Dictionary = {}
 
 
 
@@ -42,10 +43,19 @@ var transition_time: float = 1.5 # for transition between presets
 
 
 func _ready():
+
 	create_dynamic_controls()
+	
+	# THE FIX: Wait until the end of the frame so the new sliders are 'ready'
+
+	
+
+	
+	# Your existing warning label logic
 	var tween = create_tween()
-	tween.tween_property(warning_label, "modulate:a", 0.0, 10.0)
+	tween.tween_property(warning_label, "modulate:a", 0.0, 5.0)
 	tween.tween_callback(warning_label.hide)
+	
 	refresh_preset_list()
 	
 func _process(delta: float) -> void:
@@ -175,67 +185,78 @@ func _on_export_logic_button_pressed():
 	output += "\tCOLOR = tex;\n}"
 	DisplayServer.clipboard_set(output)
 
-func create_dynamic_controls(): # --- DYNAMIC UI GENERATION ---
+func create_dynamic_controls():
 	var mat = display_sprite.material as ShaderMaterial
 	if not mat or not mat.shader: return
 	
+	# --- STAGE 1: CLEANUP ---
 	for child in controls_container.get_children():
 		child.queue_free()
 
+	# --- STAGE 2: PREPARATION ---
 	var descriptions = parse_shader_descriptions(mat.shader.resource_path)
-	var params = RenderingServer.get_shader_parameter_list(mat.shader.get_rid())
+	# Use the Shader's own uniform list for UI generation
+	var params = mat.shader.get_shader_uniform_list()
 	
 	for p in params:
-		# 1. Skip internal or time parameters
+		# Skip internal Godot parameters and the manual timer
 		if p.name.begins_with("shader_parameter/") or p.name == "manual_time":
 			continue
 		
-		# 2. Handle QUATERNIONS / VECTORS (The 4D Geek Stuff)
+		# --- STAGE 3: CAPTURE VALUES ---
+		# Since you cleaned the .tscn, this will now correctly return 
+		# the defaults from your .gdshader file.
+		var current_val = mat.get_shader_parameter(p.name)
+
+		# Safety fallback: if Godot returns Nil, we provide a basic starting point
+		if current_val == null:
+			match p.type:
+				TYPE_QUATERNION, TYPE_VECTOR4: current_val = Quaternion(0, 0, 0, 1)
+				TYPE_COLOR: current_val = Color.WHITE
+				_: current_val = 0.0
+
+		# Save the very first values we see as the "True Home" for the Reset button
+		if not original_shader_defaults.has(p.name):
+			original_shader_defaults[p.name] = current_val
+
+		var true_default = original_shader_defaults[p.name]
+
+
+		# --- STAGE 4: QUATERNION/VEC4 SLIDERS ---
 		if p.type == TYPE_QUATERNION or p.type == TYPE_VECTOR4:
 			var component_names = ["x", "y", "z", "w"]
-			var current_val = mat.get_shader_parameter(p.name)
-			# Ensure we have a valid starting point
-			if current_val == null: current_val = Quaternion(0, 0, 0, 1)
-			
 			for i in range(4):
-				var quat_ctrl = slider_scene.instantiate()
-				controls_container.add_child(quat_ctrl)
-				
-				# We name it "q_rot.x", "q_rot.y", etc.
+				var q_ctrl = slider_scene.instantiate()
+				controls_container.add_child(q_ctrl)
 				var sub_name = p.name + "." + component_names[i]
-				quat_ctrl.set_range(-1.0, 1.0, 0.01)
-				quat_ctrl.setup(sub_name, current_val[i], "Adjust " + sub_name)
-				quat_ctrl.value_changed.connect(_on_dynamic_value_changed)
-			
-			continue # Move to the next parameter since we handled this one
+				
+				# Pass the component value and its true default
+				q_ctrl.setup(sub_name, current_val[i], "4D Axis: " + sub_name, true_default[i])
+				q_ctrl.value_changed.connect(_on_dynamic_value_changed)
+			continue
 
-		# 3. Handle FLOATS (Your existing logic)
+		# --- STAGE 5: FLOAT SLIDERS ---
 		if p.type == TYPE_FLOAT:
-			var float_ctrl = slider_scene.instantiate()
-			controls_container.add_child(float_ctrl)
+			var f_ctrl = slider_scene.instantiate()
+			controls_container.add_child(f_ctrl)
 			
-			# Setup range hints
+			# Parse the hint_range(min, max, step) from the shader
 			if p.hint == PROPERTY_HINT_RANGE and not p.hint_string.is_empty():
 				var parts = p.hint_string.split(",")
 				var min_v = float(parts[0])
 				var max_v = float(parts[1])
 				var step_v = float(parts[2]) if parts.size() > 2 else 0.01
-				float_ctrl.set_range(min_v, max_v, step_v)
+				f_ctrl.set_range(min_v, max_v, step_v)
 			
-			var initial_value = mat.get_shader_parameter(p.name)
-			
-			# Handle your specific defaults
-			if initial_value == null: initial_value = 0.0
-			if p.name == "fold_number" or p.name == "hex_scale" or p.name == "swirl_speed":
-				initial_value = 0.0
-				mat.set_shader_parameter(p.name, 0.0)
-			elif p.name == "mask_radius":
-				initial_value = 1.0
-				mat.set_shader_parameter("mask_radius", 1.0)
-
 			var desc = descriptions.get(p.name, "Adjust " + p.name)
-			float_ctrl.setup(p.name, initial_value, desc)
-			float_ctrl.value_changed.connect(_on_dynamic_value_changed)
+			# Initialize the slider with the shader's default value
+			f_ctrl.setup(p.name, current_val, desc, true_default)
+			f_ctrl.value_changed.connect(_on_dynamic_value_changed)
+			
+	# --- STAGE 6: INITIAL SYNC ---
+# Force the material to actually use the values we just put into the UI
+	for p_name in original_shader_defaults:
+		mat.set_shader_parameter(p_name, original_shader_defaults[p_name])
 
 func _on_dynamic_value_changed(p_name: String, value: float):
 	var mat = display_sprite.material as ShaderMaterial
@@ -399,15 +420,18 @@ func _on_save_button_pressed():
 	file_dialog.current_file = "sprite_export.png"
 	file_dialog.popup_centered()
 
-func _on_reset_all_button_pressed(): #RESETS THE SHADER KNOBS
+func _on_reset_all_button_pressed():
 	var mat = display_sprite.material as ShaderMaterial
-	if mat:
-		# Manual reset of parameters
-		mat.set_shader_parameter("manual_time", 0.0)
-		# ... other param resets ...
-	speed_slider.value = 1.0
+	if not mat: return
+	
+	# Force the GPU values back to 'True' defaults immediately
+	for p_name in original_shader_defaults.keys():
+		mat.set_shader_parameter(p_name, original_shader_defaults[p_name])
+	
+	# Then tell the sliders to move home
 	for child in controls_container.get_children():
-		if child.has_method("reset_to_default"): child.reset_to_default()
+		if child.has_method("reset_to_default"):
+			child.reset_to_default()
 
 func _on_color_picker_button_color_changed(color: Color):
 	# Directly updates the 'mod_color' uniform in the shader
@@ -532,23 +556,42 @@ func _on_preset_button_pressed(file_name: String):
 		var end_val = preset.get_param(p_name)
 		if start_val == null: continue
 
-		# 1. Update Shader Math (Floats, Quaternions, and now COLORS)
-		tween.tween_property(mat, "shader_parameter/" + p_name, end_val, transition_time)
+		# --- 1. SHADER MATH TWEENING ---
+		# We use 'tween_property' for standard numbers and colors
+		# But for Quaternions, we use 'tween_method' to ensure a smooth 4D Slerp
+		if start_val is Quaternion and end_val is Quaternion:
+			tween.tween_method(
+				func(v): mat.set_shader_parameter(p_name, v),
+				start_val,
+				end_val,
+				transition_time
+			)
+		else:
+			# Handles Floats, Vector4s, and Colors
+			tween.tween_property(mat, "shader_parameter/" + p_name, end_val, transition_time)
 		
-		# 2. Update the UI Color Picker (The Visual Box)
-		if p_name == "mod_color":
-			# If you have a ColorPicker node, we tween its color too
-			# Replace this path with your actual ColorPicker path
-			var cp = color_picker
-			if cp:
-				tween.tween_property(cp, "color", end_val, transition_time)
-		
-		# 3. Update the UI Sliders (As before)
+		# --- 2. UI SLIDER TWEENING ---
 		for ctrl in controls_container.get_children():
-			if ctrl.has_method("get_param_name") and ctrl.get_param_name().begins_with(p_name):
-				tween.tween_property(ctrl, "current_value", end_val, transition_time)
+			# Ensure we are looking at the right control
+			if not ctrl.has_method("get_param_name"): continue
+			
+			var ctrl_name = ctrl.get_param_name()
+			
+			# Case A: Standard Float (e.g., 'hyperbolic_bend')
+			if ctrl_name == p_name:
+				tween.tween_property(ctrl.slider, "value", end_val, transition_time)
+			
+			# Case B: 4D Axis Sliders (e.g., 'q_rot.x')
+			elif ctrl_name.begins_with(p_name + "."):
+				var axis = ctrl_name.split(".")[1]
+				var axis_val = end_val[axis] # Pulls x, y, z, or w from the 4D vector
+				tween.tween_property(ctrl.slider, "value", axis_val, transition_time)
 
-	print("4D Spectrum Shift engaged: ", file_name)
+		# --- 3. COLOR PICKER TWEENING ---
+		if p_name == "mod_color" and color_picker:
+			tween.tween_property(color_picker, "color", end_val, transition_time)
+
+	print("4D Type-Safe Sweep: ", file_name)
 
 func _on_transition_speed_changed(value):
 	transition_time = value
