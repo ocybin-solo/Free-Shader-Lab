@@ -504,13 +504,15 @@ func refresh_preset_list():
 	var file_name = dir.get_next()
 	while file_name != "":
 		if not dir.current_is_dir() and file_name.ends_with(".tres"):
-			# 3. Create a button for this "Trip"
 			var btn = Button.new()
-			btn.text = file_name.replace(".tres", "")
+			var trip_name = file_name.replace(".tres", "")
+			btn.text = trip_name
 			btn.alignment = HorizontalAlignment.HORIZONTAL_ALIGNMENT_LEFT
 			
-			# 4. Connect the button to a load function
-			# Use GuiInput instead of 'pressed' to detect right-clicks
+			# --- ADD THE TOOLTIP HERE ---
+			btn.tooltip_text = "Left-Click: Transition to '" + trip_name + "'\nRight-Click: Delete preset"
+			
+			# Connect the input for left/right click detection
 			btn.gui_input.connect(_on_preset_gui_input.bind(file_name))
 			
 			container.add_child(btn)
@@ -523,28 +525,30 @@ func _on_preset_button_pressed(file_name: String):
 	if not preset: return
 	
 	var mat = display_sprite.material as ShaderMaterial
-	
-	# Create a Linear Tween (No Easing)
-	# We still use set_parallel(true) so all sliders move together
-	var tween = create_tween().set_parallel(true)
-	
-	# We explicitly set it to Linear just to be safe and "Geeky"
-	tween.set_trans(Tween.TRANS_LINEAR)
+	var tween = create_tween().set_parallel(true).set_trans(Tween.TRANS_LINEAR)
 
 	for p_name in preset.parameters.keys():
 		var start_val = mat.get_shader_parameter(p_name)
 		var end_val = preset.get_param(p_name)
 		if start_val == null: continue
 
-		# 1. Update Shader Math (Now at a steady, linear speed)
+		# 1. Update Shader Math (Floats, Quaternions, and now COLORS)
 		tween.tween_property(mat, "shader_parameter/" + p_name, end_val, transition_time)
 		
-		# 2. Update UI Sliders
+		# 2. Update the UI Color Picker (The Visual Box)
+		if p_name == "mod_color":
+			# If you have a ColorPicker node, we tween its color too
+			# Replace this path with your actual ColorPicker path
+			var cp = color_picker
+			if cp:
+				tween.tween_property(cp, "color", end_val, transition_time)
+		
+		# 3. Update the UI Sliders (As before)
 		for ctrl in controls_container.get_children():
 			if ctrl.has_method("get_param_name") and ctrl.get_param_name().begins_with(p_name):
 				tween.tween_property(ctrl, "current_value", end_val, transition_time)
 
-	print("Linear 4D Sweep engaged: ", file_name, " over ", transition_time, "s")
+	print("4D Spectrum Shift engaged: ", file_name)
 
 func _on_transition_speed_changed(value):
 	transition_time = value
