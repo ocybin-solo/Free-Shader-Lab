@@ -65,10 +65,10 @@ script = ExtResource("1_uu6xs")
 [node name="MarginContainer" type="MarginContainer" parent="CanvasLayer/MainMenu" unique_id=493139833]
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_constants/margin_left = 20
-theme_override_constants/margin_top = 20
-theme_override_constants/margin_right = 20
-theme_override_constants/margin_bottom = 20
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 10
 
 [node name="HBoxContainer" type="HBoxContainer" parent="CanvasLayer/MainMenu/MarginContainer" unique_id=199759667]
 layout_mode = 2
@@ -107,6 +107,18 @@ theme_override_constants/margin_bottom = 10
 clip_contents = true
 layout_mode = 2
 
+[node name="HSlider" type="HSlider" parent="CanvasLayer/MainMenu/MarginContainer/HBoxContainer/LeftPanel/MarginContainer/VBoxContainer/PresetContainer/MarginContainer/VBoxContainer" unique_id=899212549]
+layout_mode = 2
+max_value = 10.0
+step = 0.1
+value = 1.5
+
+[node name="Label" type="Label" parent="CanvasLayer/MainMenu/MarginContainer/HBoxContainer/LeftPanel/MarginContainer/VBoxContainer/PresetContainer/MarginContainer/VBoxContainer" unique_id=1943944698]
+layout_mode = 2
+theme_override_font_sizes/font_size = 14
+text = "^ Transition Speed ^"
+horizontal_alignment = 1
+
 [node name="PresetScrollContainer" type="ScrollContainer" parent="CanvasLayer/MainMenu/MarginContainer/HBoxContainer/LeftPanel/MarginContainer/VBoxContainer/PresetContainer/MarginContainer/VBoxContainer" unique_id=1744165883]
 custom_minimum_size = Vector2(0, 50)
 layout_mode = 2
@@ -127,11 +139,6 @@ layout_mode = 2
 tooltip_text = "Save's the current values of all sliders in the right panel"
 text = "Save Preset"
 
-[node name="L_ColorSelect" type="Label" parent="CanvasLayer/MainMenu/MarginContainer/HBoxContainer/LeftPanel/MarginContainer/VBoxContainer" unique_id=1399327570]
-layout_mode = 2
-text = "Base Color Selector"
-horizontal_alignment = 1
-
 [node name="ColorPickerButton" type="ColorPickerButton" parent="CanvasLayer/MainMenu/MarginContainer/HBoxContainer/LeftPanel/MarginContainer/VBoxContainer" unique_id=308108067]
 layout_mode = 2
 text = "Choose Color"
@@ -149,7 +156,6 @@ horizontal_alignment = 1
 
 [node name="B_Filters" type="OptionButton" parent="CanvasLayer/MainMenu/MarginContainer/HBoxContainer/LeftPanel/MarginContainer/VBoxContainer" unique_id=863845210]
 layout_mode = 2
-tooltip_text = "Testing"
 alignment = 1
 item_count = 3
 popup/item_0/text = "Default"
@@ -237,7 +243,7 @@ mouse_target = true
 [node name="SubViewport" type="SubViewport" parent="CanvasLayer/MainMenu/MarginContainer/HBoxContainer/MidPanel/MarginContainer/VBoxContainer/SubViewportContainer" unique_id=438583877]
 transparent_bg = true
 handle_input_locally = false
-size = Vector2i(608, 506)
+size = Vector2i(623, 526)
 render_target_update_mode = 4
 
 [node name="Sprite2D" type="Sprite2D" parent="CanvasLayer/MainMenu/MarginContainer/HBoxContainer/MidPanel/MarginContainer/VBoxContainer/SubViewportContainer/SubViewport" unique_id=2059662500]
@@ -331,6 +337,7 @@ min_value = 2.0
 max_value = 60.0
 value = 10.0
 
+[connection signal="value_changed" from="CanvasLayer/MainMenu/MarginContainer/HBoxContainer/LeftPanel/MarginContainer/VBoxContainer/PresetContainer/MarginContainer/VBoxContainer/HSlider" to="CanvasLayer/MainMenu" method="_on_transition_speed_changed"]
 [connection signal="pressed" from="CanvasLayer/MainMenu/MarginContainer/HBoxContainer/LeftPanel/MarginContainer/VBoxContainer/PresetContainer/MarginContainer/VBoxContainer/SavePresetButton" to="CanvasLayer/MainMenu" method="_on_save_preset_button_pressed"]
 [connection signal="color_changed" from="CanvasLayer/MainMenu/MarginContainer/HBoxContainer/LeftPanel/MarginContainer/VBoxContainer/ColorPickerButton" to="CanvasLayer/MainMenu" method="_on_color_picker_button_color_changed"]
 [connection signal="file_selected" from="CanvasLayer/MainMenu/MarginContainer/HBoxContainer/LeftPanel/MarginContainer/VBoxContainer/OpenFile" to="CanvasLayer/MainMenu" method="_on_file_dialog_file_selected"]

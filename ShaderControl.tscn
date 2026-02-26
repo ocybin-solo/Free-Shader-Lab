@@ -33,4 +33,8 @@ layout_mode = 2
 size_flags_horizontal = 3
 ticks_on_borders = true
 
+[node name="Control" type="Control" parent="HBoxContainer" unique_id=1094736952]
+custom_minimum_size = Vector2(4, 0)
+layout_mode = 2
+
 [connection signal="value_changed" from="HBoxContainer/ParamSlider" to="." method="_on_param_slider_value_changed"]

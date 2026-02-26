@@ -38,6 +38,7 @@ var max_zoom = 5.0
 var is_panning = false
 var is_exporting = false
 var preview_elapsed_time: float = 0.0
+var transition_time: float = 1.5 # for transition between presets
 
 
 func _ready():
@@ -386,7 +387,7 @@ func export_animated_strip(path: String, frame_count: int):
 	is_playing_gif = true 
 	print("Export complete. Previewing %d frames." % captured_frames.size())
 
-func _on_reset_button_pressed():
+func _on_reset_button_pressed(): #RESET THE IMAGE POSITION
 	var tween = create_tween().set_parallel(true)
 	tween.tween_property(camera, "position", Vector2.ZERO, 0.3)
 	tween.tween_property(camera, "zoom", Vector2.ONE, 0.3)
@@ -398,7 +399,7 @@ func _on_save_button_pressed():
 	file_dialog.current_file = "sprite_export.png"
 	file_dialog.popup_centered()
 
-func _on_reset_all_button_pressed():
+func _on_reset_all_button_pressed(): #RESETS THE SHADER KNOBS
 	var mat = display_sprite.material as ShaderMaterial
 	if mat:
 		# Manual reset of parameters
@@ -419,7 +420,7 @@ func _on_filter_selected(index: int):
 	# This matches the 'Texture Filter' settings in the Godot Inspector
 	display_sprite.texture_filter = index as CanvasItem.TextureFilter
 
-func stop_preview():
+func stop_preview(): #ESCAPES THE ANIMATED STRIP SAVE PREVIEW
 	is_playing_gif = false
 	# The _process function will now automatically show the live view again
 	viewport_container.visible = true
@@ -509,7 +510,8 @@ func refresh_preset_list():
 			btn.alignment = HorizontalAlignment.HORIZONTAL_ALIGNMENT_LEFT
 			
 			# 4. Connect the button to a load function
-			btn.pressed.connect(_on_preset_button_pressed.bind(file_name))
+			# Use GuiInput instead of 'pressed' to detect right-clicks
+			btn.gui_input.connect(_on_preset_gui_input.bind(file_name))
 			
 			container.add_child(btn)
 			
@@ -521,25 +523,46 @@ func _on_preset_button_pressed(file_name: String):
 	if not preset: return
 	
 	var mat = display_sprite.material as ShaderMaterial
-	var tween = create_tween().set_parallel(true).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 	
+	# Create a Linear Tween (No Easing)
+	# We still use set_parallel(true) so all sliders move together
+	var tween = create_tween().set_parallel(true)
+	
+	# We explicitly set it to Linear just to be safe and "Geeky"
+	tween.set_trans(Tween.TRANS_LINEAR)
+
 	for p_name in preset.parameters.keys():
 		var start_val = mat.get_shader_parameter(p_name)
 		var end_val = preset.get_param(p_name)
 		if start_val == null: continue
 
-		# 1. Update the Shader (The Math)
-		tween.tween_property(mat, "shader_parameter/" + p_name, end_val, 2.0)
+		# 1. Update Shader Math (Now at a steady, linear speed)
+		tween.tween_property(mat, "shader_parameter/" + p_name, end_val, transition_time)
 		
-		# 2. Update the UI Sliders (The Visuals)
-		# We look for a slider in your container that matches the parameter name
+		# 2. Update UI Sliders
 		for ctrl in controls_container.get_children():
-			# Check if the slider's internal name matches (handling the 'q_rot.x' dots)
 			if ctrl.has_method("get_param_name") and ctrl.get_param_name().begins_with(p_name):
-				# Tween the slider's visual value so it 'slides' with the math
-				# (Note: Use 'set_value_no_signal' if your slider script has it to prevent loops)
-				tween.tween_property(ctrl, "current_value", end_val, 2.0)
+				tween.tween_property(ctrl, "current_value", end_val, transition_time)
 
-	# No need to 'rebuild' the controls at the end anymore, 
-	# because they traveled there with the tween!
-	print("4D Transition initiated: ", file_name)
+	print("Linear 4D Sweep engaged: ", file_name, " over ", transition_time, "s")
+
+func _on_transition_speed_changed(value):
+	transition_time = value
+
+func _on_preset_gui_input(event: InputEvent, file_name: String):
+	if event is InputEventMouseButton and event.pressed:
+		# LEFT CLICK: Transition to Preset
+		if event.button_index == MOUSE_BUTTON_LEFT:
+			_on_preset_button_pressed(file_name)
+		
+		# RIGHT CLICK: Delete Preset
+		elif event.button_index == MOUSE_BUTTON_RIGHT:
+			_delete_preset(file_name)
+
+func _delete_preset(file_name: String):
+	var path = "user://presets/" + file_name
+	if FileAccess.file_exists(path):
+		OS.move_to_trash(ProjectSettings.globalize_path(path))
+		# Or use: DirAccess.remove_absolute(path) if you want it gone forever
+		print("4D Archive: Deleted ", file_name)
+		refresh_preset_list() # Re-scan the folder to update the UI
