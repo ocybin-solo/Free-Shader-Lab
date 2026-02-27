@@ -3,7 +3,7 @@ extends Control
 # --- Node Paths ---
 @onready var camera = $MarginContainer/HBoxContainer/MidPanel/MarginContainer/VBoxContainer/SubViewportContainer/SubViewport/Camera2D
 @onready var viewport_container = $MarginContainer/HBoxContainer/MidPanel/MarginContainer/VBoxContainer/SubViewportContainer
-@onready var sub_viewport = $MarginContainer/HBoxContainer/MidPanel/MarginContainer/VBoxContainer/SubViewportContainer/SubViewport
+@onready var sub_viewport = get_node("/root/Main/CanvasLayer/MainMenu/MarginContainer/MidPanel/MarginContainer/VBoxContainer/SubViewportContainer/SubViewport")
 @onready var file_dialog = $MarginContainer/HBoxContainer/LeftPanel/MarginContainer/VBoxContainer/OpenFile
 @onready var display_sprite = $MarginContainer/HBoxContainer/MidPanel/MarginContainer/VBoxContainer/SubViewportContainer/SubViewport/Sprite2D
 @onready var color_picker = $MarginContainer/HBoxContainer/LeftPanel/MarginContainer/VBoxContainer/ColorPickerButton
@@ -23,7 +23,7 @@ extends Control
 
 @onready var VortexEarNode = %VortexEar
 # If you used the '%' Unique Name trick:
-@onready var camera_3d = %Camera3D 
+
 #@onready var my_sphere = %MeshInstance3D #calling in ready instead
 
 # -- Animation preview stuff 
@@ -50,35 +50,32 @@ var is_exporting = false
 var preview_elapsed_time: float = 0.0
 var transition_time: float = 1.5 # for transition between presets
 
-@onready var world_3d = $"../../Node3D" # Your new 3D scene
-@onready var ui_overlay = $MarginContainer
+# --- THE HYPERSPACE MAP ---
+# These paths look at the very top of the game tree
+@onready var world_3d = get_node("/root/Main/Node3D") 
+@onready var camera_3d = get_node("/root/Main/Node3D/Camera3D")
+@onready var my_sphere = get_node("/root/Main/Node3D/MeshInstance3D")
+var ui_overlay
 
 func _ready():
 	# --- STAGE 1: THE HYPERSPACE BRIDGE ---
-	# Wait one frame for the 3D world to "Materialize"
+ 	#AWAIT for the 3D universe to materialize
 	await get_tree().process_frame
 
-	var my_viewport = $SubViewportContainer/SubViewport
-	# Search for the sphere inside the viewport specifically
-	var my_sphere = my_viewport.find_child("MeshInstance3D", true, false)
-	
-	if my_sphere:
-		# Use the Material Override slot we set up earlier
+	# 2. THE BRIDGE: Connect the 2D Kaleidoscope to the 3D Sphere
+	if my_sphere and sub_viewport:
 		var mat_3d = my_sphere.get_surface_override_material(0) as ShaderMaterial
 		if mat_3d:
 			var vp_tex = ViewportTexture.new()
-			vp_tex.viewport_path = my_viewport.get_path()
+			vp_tex.viewport_path = sub_viewport.get_path()
 			mat_3d.set_shader_parameter("main_texture", vp_tex)
 			
-			# OPTIONAL: Flip the sphere inside-out so you can fly through it!
-			var sphere_mesh = my_sphere.mesh as SphereMesh
-			if sphere_mesh:
-				# This lets you see the kaleidoscope from the INSIDE
-				mat_3d.set_render_priority(1) # Ensure it draws correctly
+			# OPTIONAL: Make the sphere double-sided
+			mat_3d.set_render_priority(1) 
 			
-			print("3D Bridge Synchronized: The Void is now streaming.")
+			print("Ninja Success: 3D Bridge Synchronized.")
 	else:
-		printerr("Ground Control Error: Could not find MeshInstance3D in SubViewport!")
+		printerr("Sensei! Ground Control lost the signal to the Sphere or Viewport!")
 
 	# --- STAGE 2: UI & MENUS ---
 	create_dynamic_controls()
@@ -109,6 +106,11 @@ func _ready():
 	# STAGE 3: Audio Setup
 	if has_node("VortexEar"):
 		$VortexEar.dual_pulse.connect(_on_vortex_ear_dual_pulse)
+	
+	if Input.is_action_just_pressed("3d_toggle"):
+		ui_overlay.visible = true
+		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE 
+	
 	
 func _process(delta: float) -> void:
 		# Update the monitor every frame
@@ -175,9 +177,7 @@ func _process(delta: float) -> void:
 					# ORGANIC MODE: Continuous climb for smooth slow-motion
 					mat.set_shader_parameter("manual_time", preview_elapsed_time)
 					
-		if Input.is_action_just_pressed("3d_toggle"):
-			ui_overlay.visible = true
-			Input.mouse_mode = Input.MOUSE_MODE_VISIBLE  # Should we check to see if we are in a menu or 3d world here?
+ # Should we check to see if we are in a menu or 3d world here?
 			
 			
 func _on_quit_button_pressed():
