@@ -45,6 +45,8 @@ var is_exporting = false
 var preview_elapsed_time: float = 0.0
 var transition_time: float = 1.5 # for transition between presets
 
+@onready var world_3d = $"../../Node3D" # Your new 3D scene
+@onready var ui_overlay = $MarginContainer
 
 func _ready():
 
@@ -139,6 +141,11 @@ func _process(delta: float) -> void:
 				else:
 					# ORGANIC MODE: Continuous climb for smooth slow-motion
 					mat.set_shader_parameter("manual_time", preview_elapsed_time)
+					
+		if Input.is_action_just_pressed("3d_toggle"):
+			ui_overlay.visible = true
+			Input.mouse_mode = Input.MOUSE_MODE_VISIBLE  # Should we check to see if we are in a menu or 3d world here?
+			
 			
 func _on_quit_button_pressed():
 	get_tree().quit()
@@ -350,6 +357,9 @@ func _input(event):
 		camera.position -= event.relative / camera.zoom.x
 	if event.is_action_pressed("ui_cancel"): # Usually the 'Escape' key
 		stop_preview()
+		# Press ESC to jump back to the Menu
+		
+
 
 func zoom_camera(delta):
 	var new_zoom = clamp(camera.zoom.x + delta, min_zoom, max_zoom)
@@ -816,8 +826,16 @@ func _check_gpu_safety():
 func _on_vortex_ear_dual_pulse(guitar_energy: float, music_energy: float):
 	var mat = display_sprite.material as ShaderMaterial
 	if not mat: return
-		# Sync the UI sliders so you can see the 'ghost' movement
-	_sync_ui_to_param("vortex_morph", guitar_energy * 100.0)
-	_sync_ui_to_param("ray_intensity", music_energy * 100.0)
+	mat.set_shader_parameter("vortex_morph", guitar_energy * 100.0)
+	mat.set_shader_parameter("ray_intensity", music_energy * 100.0)
 
 	
+func _on_enter_void_pressed():
+	# 1. Hide the messy sliders
+	ui_overlay.visible = false
+	
+	# 2. Enable the 6DoF Camera
+	world_3d.get_node("Camera3D").set_process(true)
+	
+	# 3. Capture the mouse for that 'True Pilot' feel
+	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
