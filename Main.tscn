@@ -4,6 +4,7 @@
 [ext_resource type="Shader" uid="uid://c4afwoidbse14" path="res://MasterSharder.gdshader" id="2_r0du0"]
 [ext_resource type="Texture2D" uid="uid://b1ey4qsdif3dr" path="res://SCICON.png" id="3_r0du0"]
 [ext_resource type="PackedScene" uid="uid://brwrfolgjrafb" path="res://Vortexear.tscn" id="4_cm0pq"]
+[ext_resource type="PackedScene" uid="uid://btjen3nq0e4bx" path="res://World3D.tscn" id="5_fos0i"]
 
 [sub_resource type="Theme" id="Theme_r0du0"]
 
@@ -374,6 +375,8 @@ value = 10.0
 
 [node name="VortexEar" parent="." unique_id=724635658 instance=ExtResource("4_cm0pq")]
 unique_name_in_owner = true
+
+[node name="Node3D" parent="." unique_id=730218681 instance=ExtResource("5_fos0i")]
 
 [connection signal="value_changed" from="CanvasLayer/MainMenu/MarginContainer/HBoxContainer/LeftPanel/MarginContainer/VBoxContainer/PresetContainer/MarginContainer/VBoxContainer/HSlider" to="CanvasLayer/MainMenu" method="_on_transition_speed_changed"]
 [connection signal="pressed" from="CanvasLayer/MainMenu/MarginContainer/HBoxContainer/LeftPanel/MarginContainer/VBoxContainer/PresetContainer/MarginContainer/VBoxContainer/RandomizerButton" to="CanvasLayer/MainMenu" method="_on_random_morph_button_pressed"]

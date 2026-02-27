@@ -24,7 +24,7 @@ extends Control
 @onready var VortexEarNode = %VortexEar
 # If you used the '%' Unique Name trick:
 @onready var camera_3d = %Camera3D 
-@onready var my_sphere = %MeshInstance3D
+#@onready var my_sphere = %MeshInstance3D #calling in ready instead
 
 # -- Animation preview stuff 
 var preview_frame_index : int = 0
@@ -54,16 +54,43 @@ var transition_time: float = 1.5 # for transition between presets
 @onready var ui_overlay = $MarginContainer
 
 func _ready():
+	# --- STAGE 1: THE HYPERSPACE BRIDGE ---
+	# Wait one frame for the 3D world to "Materialize"
+	await get_tree().process_frame
 
+	var my_viewport = $SubViewportContainer/SubViewport
+	# Search for the sphere inside the viewport specifically
+	var my_sphere = my_viewport.find_child("MeshInstance3D", true, false)
+	
+	if my_sphere:
+		# Use the Material Override slot we set up earlier
+		var mat_3d = my_sphere.get_surface_override_material(0) as ShaderMaterial
+		if mat_3d:
+			var vp_tex = ViewportTexture.new()
+			vp_tex.viewport_path = my_viewport.get_path()
+			mat_3d.set_shader_parameter("main_texture", vp_tex)
+			
+			# OPTIONAL: Flip the sphere inside-out so you can fly through it!
+			var sphere_mesh = my_sphere.mesh as SphereMesh
+			if sphere_mesh:
+				# This lets you see the kaleidoscope from the INSIDE
+				mat_3d.set_render_priority(1) # Ensure it draws correctly
+			
+			print("3D Bridge Synchronized: The Void is now streaming.")
+	else:
+		printerr("Ground Control Error: Could not find MeshInstance3D in SubViewport!")
+
+	# --- STAGE 2: UI & MENUS ---
 	create_dynamic_controls()
 
-
+	# Photosensitivity Warning Tween
 	var tween = create_tween()
-	tween.tween_property(warning_label, "modulate:a", 0.0, 5.0) # P-Sens Warning tween
+	tween.tween_property(warning_label, "modulate:a", 0.0, 5.0)
 	tween.tween_callback(warning_label.hide)
 	
 	refresh_preset_list()
-		# 1. Setup Easing Dropdown
+	
+	# Setup Easing Dropdown
 	var trans_btn = %TransitionTypeButton
 	trans_btn.clear()
 	trans_btn.add_item("Sine (Smooth)", 0)
@@ -72,22 +99,16 @@ func _ready():
 	trans_btn.add_item("Back (Cinematic)", 3)
 	trans_btn.add_item("Bounce (Impact)", 4)
 	
-	# 2. Setup Snap Timing Dropdown
+	# Setup Snap Timing Dropdown
 	var snap_btn = %SnapTimingButton
 	snap_btn.clear()
 	snap_btn.add_item("Snap at Start", 0)
 	snap_btn.add_item("Snap at Mid-Point", 1)
 	snap_btn.add_item("Snap at End", 2)
-	var mat = my_sphere.get_surface_override_material(0) as ShaderMaterial
-	if mat:
-		# 3. Create a NEW ViewportTexture in code (this bypasses the 'Pick' menu)
-		var vp_tex = ViewportTexture.new()
-		# 4. Tell it exactly where to look
-		vp_tex.viewport_path = sub_viewport.get_path()
-		# 5. Push it into the shader!
-		mat.set_shader_parameter("main_texture", vp_tex)
-		print("3D Bridge Synchronized: Viewport is now streaming to the Sphere.")
 	
+	# STAGE 3: Audio Setup
+	if has_node("VortexEar"):
+		$VortexEar.dual_pulse.connect(_on_vortex_ear_dual_pulse)
 	
 func _process(delta: float) -> void:
 		# Update the monitor every frame
