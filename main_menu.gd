@@ -21,7 +21,7 @@ extends Control
 @onready var fps_label = $"../../CanvasLayer2/VBoxContainer/FPSLabel"
 @onready var perf_label = $MarginContainer/HBoxContainer/LeftPanel/MarginContainer/VBoxContainer/PerfLabel
 
-@onready var vortex_ear = $"../../VortexEar"
+
 
 # -- Animation preview stuff 
 var preview_frame_index : int = 0
@@ -72,7 +72,7 @@ func _ready():
 	snap_btn.add_item("Snap at Mid-Point", 1)
 	snap_btn.add_item("Snap at End", 2)
 	
-	vortex_ear.audio_pulse.connect(_on_vortex_ear_pulse)
+	%VortexEar.dual_pulse.connect(_on_vortex_ear_dual_pulse)
 	
 	
 func _process(delta: float) -> void:
@@ -813,7 +813,14 @@ func _check_gpu_safety():
 			
 			## AUDIYODELOGIC
 			
-func _on_vortex_ear_pulse(bass, mids, highs):
+func _on_vortex_ear_dual_pulse(guitar_energy, music_energy):
 	var mat = display_sprite.material as ShaderMaterial
-	# Now just apply the 'bass' to your vortex_morph!
-	mat.set_shader_parameter("vortex_morph", bass * 25.0)
+	if not mat: return
+	
+	# GUITAR -> Affects the 'vortex_morph' (The liquid shimmer)
+	var current_morph = mat.get_shader_parameter("vortex_morph")
+	mat.set_shader_parameter("vortex_morph", lerp(current_morph, guitar_energy * 60.0, 0.1))
+	
+	# MUSIC -> Affects the 'ray_intensity' (The volumetric glow)
+	var current_rays = mat.get_shader_parameter("ray_intensity")
+	mat.set_shader_parameter("ray_intensity", lerp(current_rays, music_energy * 40.0, 0.1))

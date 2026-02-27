@@ -2,5 +2,11 @@
 
 [ext_resource type="Script" uid="uid://day3jgsvv7hde" path="res://vortexear.gd" id="1_1sif6"]
 
+[sub_resource type="AudioStreamMicrophone" id="AudioStreamMicrophone_1sif6"]
+
 [node name="VortexEar" type="Node" unique_id=724635658]
 script = ExtResource("1_1sif6")
+
+[node name="AudioStreamPlayer" type="AudioStreamPlayer" parent="." unique_id=964951714]
+stream = SubResource("AudioStreamMicrophone_1sif6")
+bus = &"GuitarInput"

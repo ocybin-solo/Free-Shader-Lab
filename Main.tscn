@@ -373,6 +373,7 @@ max_value = 60.0
 value = 10.0
 
 [node name="VortexEar" parent="." unique_id=724635658 instance=ExtResource("4_cm0pq")]
+unique_name_in_owner = true
 
 [connection signal="value_changed" from="CanvasLayer/MainMenu/MarginContainer/HBoxContainer/LeftPanel/MarginContainer/VBoxContainer/PresetContainer/MarginContainer/VBoxContainer/HSlider" to="CanvasLayer/MainMenu" method="_on_transition_speed_changed"]
 [connection signal="pressed" from="CanvasLayer/MainMenu/MarginContainer/HBoxContainer/LeftPanel/MarginContainer/VBoxContainer/PresetContainer/MarginContainer/VBoxContainer/RandomizerButton" to="CanvasLayer/MainMenu" method="_on_random_morph_button_pressed"]

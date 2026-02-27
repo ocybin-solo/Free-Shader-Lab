@@ -1,21 +1,28 @@
 extends Node
 
-# Signal to tell the main app when the music "Hits"
-signal audio_pulse(bass: float, mids: float, highs: float)
+# Signal sends (Guitar_Energy, Music_Energy)
+signal dual_pulse(guitar: float, music: float)
 
-var spectrum: AudioEffectInstance
+var spectrum_guitar: AudioEffectInstance
+var spectrum_music: AudioEffectInstance
 
 func _ready():
-	var bus_index = AudioServer.get_bus_index("VortexInput")
-	spectrum = AudioServer.get_bus_effect_instance(bus_index, 0)
+	# 1. Hook up the Guitar Ear
+	var g_idx = AudioServer.get_bus_index("GuitarInput")
+	spectrum_guitar = AudioServer.get_bus_effect_instance(g_idx, 0)
+	
+	# 2. Hook up the Music Ear
+	var m_idx = AudioServer.get_bus_index("MusicInput")
+	spectrum_music = AudioServer.get_bus_effect_instance(m_idx, 0)
 
 func _process(_delta):
-	if not spectrum: return
+	if not spectrum_guitar or not spectrum_music: return
 	
-	# Capture the bands (Guitar/Liszt/Mozart)
-	var bass = spectrum.get_magnitude_for_frequency_range(20, 200).length()
-	var mids = spectrum.get_magnitude_for_frequency_range(200, 2000).length()
-	var highs = spectrum.get_magnitude_for_frequency_range(2000, 10000).length()
+	# Sample the "Mids" for the Guitar (where the strings sing)
+	var g_val = spectrum_guitar.get_magnitude_for_frequency_range(200, 2000).length()
 	
-	# Emit the data so the Main Menu can 'hear' it
-	audio_pulse.emit(bass, mids, highs)
+	# Sample the "Bass" for the Music (the heartbeat of the track)
+	var m_val = spectrum_music.get_magnitude_for_frequency_range(20, 200).length()
+	
+	# Send both to the Brain
+	dual_pulse.emit(g_val, m_val)
