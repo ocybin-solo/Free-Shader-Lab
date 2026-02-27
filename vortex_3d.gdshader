@@ -235,12 +235,13 @@ if (wave_strength > 0.01) {
     uv.x += sin(uv.y * wave_sync + manual_time * tau) * (wave_strength * 0.05);
 }
 
-	// PIXELATE
-	if (pixelate > 0.0) {
-		vec2 size = vec2(textureSize(TEXTURE, 0));
-		float f = mix(1.0, 0.02, pixelate);
-		uv = floor(uv * size * f) / (size * f);
-	}
+// PIXELATE (Spatial Version)
+if (pixelate > 0.0) {
+	// In spatial, we use the resolution of the main texture or a fixed value
+	vec2 size = vec2(1024.0); // You can set this to your desired base res
+	float f = mix(1.0, 0.05, pixelate);
+	uv = floor(uv * size * f) / (size * f);
+}
 
 // SWIRL
 if (swirl_strength > 0.01) {

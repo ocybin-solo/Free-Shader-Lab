@@ -22,6 +22,8 @@ extends Control
 @onready var perf_label = $MarginContainer/HBoxContainer/LeftPanel/MarginContainer/VBoxContainer/PerfLabel
 
 @onready var VortexEarNode = %VortexEar
+# If you used the '%' Unique Name trick:
+@onready var camera_3d = %Camera3D 
 
 # -- Animation preview stuff 
 var preview_frame_index : int = 0
@@ -32,6 +34,8 @@ var captured_frames: Array = [] # This holds the actual Image objects
 # How fast the GIF plays (e.g., 0.1s per frame = 10 FPS)
 @export var frame_delay : float = 0.1 
 var original_shader_defaults: Dictionary = {}
+
+var is_in_void = false # are we currently in the 3d world?
 
 
 
@@ -358,7 +362,7 @@ func _input(event):
 	if event.is_action_pressed("ui_cancel"): # Usually the 'Escape' key
 		stop_preview()
 		# Press ESC to jump back to the Menu
-		
+	
 
 
 func zoom_camera(delta):
@@ -839,3 +843,16 @@ func _on_enter_void_pressed():
 	
 	# 3. Capture the mouse for that 'True Pilot' feel
 	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+	
+func _on_3d_toggle_pressed():
+	is_in_void = !is_in_void # Flip the switch
+	
+	ui_overlay.visible = !is_in_void
+	
+	if is_in_void:
+		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+		# Enable the camera script
+		camera_3d.set_process(true)
+	else:
+		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+		camera_3d.set_process(false)
