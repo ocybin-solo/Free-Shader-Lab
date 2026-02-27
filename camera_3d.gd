@@ -38,3 +38,5 @@ func _input(event):
 			var box = boombox_scene.instantiate()
 			get_parent().add_child(box)
 			box.global_position = global_position + (quaternion * Vector3(0,0,-5))
+
+		

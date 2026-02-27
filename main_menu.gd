@@ -3,7 +3,7 @@ extends Control
 # --- Node Paths ---
 @onready var camera = $MarginContainer/HBoxContainer/MidPanel/MarginContainer/VBoxContainer/SubViewportContainer/SubViewport/Camera2D
 @onready var viewport_container = $MarginContainer/HBoxContainer/MidPanel/MarginContainer/VBoxContainer/SubViewportContainer
-@onready var sub_viewport = get_node("/root/Main/CanvasLayer/MainMenu/MarginContainer/MidPanel/MarginContainer/VBoxContainer/SubViewportContainer/SubViewport")
+@onready var sub_viewport 
 @onready var file_dialog = $MarginContainer/HBoxContainer/LeftPanel/MarginContainer/VBoxContainer/OpenFile
 @onready var display_sprite = $MarginContainer/HBoxContainer/MidPanel/MarginContainer/VBoxContainer/SubViewportContainer/SubViewport/Sprite2D
 @onready var color_picker = $MarginContainer/HBoxContainer/LeftPanel/MarginContainer/VBoxContainer/ColorPickerButton
@@ -54,28 +54,31 @@ var transition_time: float = 1.5 # for transition between presets
 # These paths look at the very top of the game tree
 @onready var world_3d = get_node("/root/Main/Node3D") 
 @onready var camera_3d = get_node("/root/Main/Node3D/Camera3D")
-@onready var my_sphere = get_node("/root/Main/Node3D/MeshInstance3D")
+#@onready var my_sphere = get_node("/root/Main/Node3D/MeshInstance3D")
 var ui_overlay
 
 func _ready():
-	# --- STAGE 1: THE HYPERSPACE BRIDGE ---
- 	#AWAIT for the 3D universe to materialize
+	# 1. WAIT: Give the 1050 Ti a moment to breathe
 	await get_tree().process_frame
 
-	# 2. THE BRIDGE: Connect the 2D Kaleidoscope to the 3D Sphere
-	if my_sphere and sub_viewport:
+	# 2. THE NINJA SNIFF: Look at the top-level scene
+	var scene_root = get_tree().current_scene
+	
+	# We search for the Mesh and the Viewport anywhere in the 'Main' tree
+	var my_sphere = scene_root.find_child("MeshInstance3D", true, false)
+	var my_viewport = scene_root.find_child("SubViewport", true, false)
+	
+	if my_sphere and my_viewport:
 		var mat_3d = my_sphere.get_surface_override_material(0) as ShaderMaterial
 		if mat_3d:
 			var vp_tex = ViewportTexture.new()
-			vp_tex.viewport_path = sub_viewport.get_path()
+			# This creates the live bridge
+			vp_tex.viewport_path = my_viewport.get_path()
 			mat_3d.set_shader_parameter("main_texture", vp_tex)
-			
-			# OPTIONAL: Make the sphere double-sided
-			mat_3d.set_render_priority(1) 
-			
-			print("Ninja Success: 3D Bridge Synchronized.")
+			print("Sensei Success: The Bridge is open. Void surfing enabled.")
 	else:
-		printerr("Sensei! Ground Control lost the signal to the Sphere or Viewport!")
+		# If we hit this, it means the names in the Scene Tree don't match!
+		printerr("Ground Control: Can't find 'MeshInstance3D' or 'SubViewport'!")
 
 	# --- STAGE 2: UI & MENUS ---
 	create_dynamic_controls()
@@ -393,6 +396,16 @@ func _input(event):
 	if event.is_action("pan"): is_panning = event.pressed
 	if event is InputEventMouseMotion and is_panning:
 		camera.position -= event.relative / camera.zoom.x
+# 1. THE 'H.' CONNECTION: Toggle between 2D and 3D
+	if event.is_action_pressed("3d_toggle"):
+		_on_3d_toggle_pressed()
+		print("Sensei: The 'H.' connection is open. Entering the Void.")
+		return # Stop other inputs from firing in the same frame
+
+	# 2. VOID PROTECTION: Don't zoom or pan the 2D UI if we are flying in 3D
+	if is_in_void:
+		return
+
 
 	
 
@@ -877,14 +890,20 @@ func _on_enter_void_pressed():
 	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 	
 func _on_3d_toggle_pressed():
-	is_in_void = !is_in_void # Flip the switch
+	is_in_void = !is_in_void # Flip the 'H.' state
 	
+	# 1. Hide the Sliders
 	ui_overlay.visible = !is_in_void
 	
 	if is_in_void:
+		# 2. CAPTURE the Mouse (For 6DoF flight)
 		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
-		# Enable the camera script
-		camera_3d.set_process(true)
+		# 3. WAKE the Pilot (The Camera3D script)
+		if camera_3d:
+			camera_3d.set_process(true)
+			camera_3d.make_current() # FORCE the 3D view
 	else:
+		# 4. RELEASE the Mouse (For UI clicking)
 		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
-		camera_3d.set_process(false)
+		if camera_3d:
+			camera_3d.set_process(false)
