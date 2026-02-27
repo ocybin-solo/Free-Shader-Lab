@@ -482,6 +482,8 @@ func create_preset_from_current_settings() -> ShaderPreset:
 			continue
 			
 		var current_val = mat.get_shader_parameter(p.name)
+		if current_val is Quaternion:
+			current_val = current_val.normalized() # This prevents the "90.0" explosion
 		if current_val != null:
 			new_preset.set_param(p.name, current_val)
 			
@@ -572,7 +574,7 @@ func _on_preset_button_pressed(file_name: String):
 		
 		# --- STAGE 1: THE INSTANT SNAP BLOCK ---
 		# Place this first to catch "illegal" transition values
-		if p_name == "sync_to_loop" or p_name == "kaleido_sides" or p_name == "fold_number":
+		if p_name == "sync_to_loop" or p_name == "kaleido_sides" or p_name == "fold_number" or p_name == "max_steps":
 			mat.set_shader_parameter(p_name, end_val)
 			_sync_ui_to_param(p_name, end_val) # Update slider position instantly
 			continue # Skip the tween logic for these!
@@ -603,7 +605,7 @@ func _update_transition_step(weight: float, starts: Dictionary, ends: Dictionary
 		
 		# TYPE-SPECIFIC INTERPOLATION
 		if start is Quaternion:
-			current_val = start.slerp(end, weight) # Essential for smooth 4D rotation
+			current_val = start.normalized().slerp(end.normalized(), weight) # Essential for smooth 4D rotation
 		elif start is Color or start is Vector4 or start is Vector3:
 			current_val = start.lerp(end, weight)
 		elif start is float or start is int:
