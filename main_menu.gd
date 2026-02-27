@@ -813,14 +813,11 @@ func _check_gpu_safety():
 			
 			## AUDIYODELOGIC
 			
-func _on_vortex_ear_dual_pulse(guitar_energy, music_energy):
+func _on_vortex_ear_dual_pulse(guitar_energy: float, music_energy: float):
 	var mat = display_sprite.material as ShaderMaterial
 	if not mat: return
 	
-	# GUITAR -> Affects the 'vortex_morph' (The liquid shimmer)
-	var current_morph = mat.get_shader_parameter("vortex_morph")
-	mat.set_shader_parameter("vortex_morph", lerp(current_morph, guitar_energy * 60.0, 0.1))
-	
-	# MUSIC -> Affects the 'ray_intensity' (The volumetric glow)
-	var current_rays = mat.get_shader_parameter("ray_intensity")
-	mat.set_shader_parameter("ray_intensity", lerp(current_rays, music_energy * 40.0, 0.1))
+	# We use the data to wiggle the 4D math!
+	# The 60.0 and 40.0 are 'Sensitivity' multipliers.
+	mat.set_shader_parameter("vortex_morph", guitar_energy * 60.0)
+	mat.set_shader_parameter("ray_intensity", music_energy * 40.0)

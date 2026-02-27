@@ -3,18 +3,19 @@ extends Node
 # Signal sends (Guitar_Energy, Music_Energy)
 signal dual_pulse(guitar: float, music: float)
 
-var spectrum_guitar: AudioEffectInstance
-var spectrum_music: AudioEffectInstance
+# Use the specific Instance type for Godot 4
+var spectrum_guitar: AudioEffectSpectrumAnalyzerInstance
+var spectrum_music: AudioEffectSpectrumAnalyzerInstance
 
 func _ready():
-	# 1. Hook up the Guitar Ear
+	# 1. Hook up the Guitar Ear (Bus Index 1)
 	var g_idx = AudioServer.get_bus_index("GuitarInput")
+	# Effect 0 is the SpectrumAnalyzer you added to that bus
 	spectrum_guitar = AudioServer.get_bus_effect_instance(g_idx, 0)
 	
-	# 2. Hook up the Music Ear
+	# 2. Hook up the Music Ear (Bus Index 2)
 	var m_idx = AudioServer.get_bus_index("MusicInput")
 	spectrum_music = AudioServer.get_bus_effect_instance(m_idx, 0)
-
 func _process(_delta):
 	if not spectrum_guitar or not spectrum_music: return
 	
