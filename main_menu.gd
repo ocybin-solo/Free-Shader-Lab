@@ -19,6 +19,8 @@ extends Control
 @onready var frame_count_input = $MarginContainer/HBoxContainer/LeftPanel/MarginContainer/VBoxContainer/FrameCountSpinbox
 @onready var speed_slider = $MarginContainer/HBoxContainer/LeftPanel/MarginContainer/VBoxContainer/HSlider
 @onready var fps_label = $"../../CanvasLayer2/VBoxContainer/FPSLabel"
+@onready var perf_label = $MarginContainer/HBoxContainer/LeftPanel/MarginContainer/VBoxContainer/PerfLabel
+
 # -- Animation preview stuff 
 var preview_frame_index : int = 0
 var preview_timer : float = 0.0
@@ -69,6 +71,9 @@ func _ready():
 	snap_btn.add_item("Snap at End", 2)
 	
 func _process(delta: float) -> void:
+		# Update the monitor every frame
+	update_performance_monitor()
+	_check_gpu_safety()
 	if is_playing_gif and captured_frames.size() > 0:
 		GifPreview.visible = true
 		viewport_container.visible = false
@@ -604,7 +609,7 @@ func _on_preset_button_pressed(file_name: String):
 		if end_val is Quaternion: end_val = end_val.normalized()
 		
 		# Identify the "Snap" parameters
-		if p_name in ["sync_to_loop", "kaleido_sides", "fold_number", "max_steps"]:
+		if p_name in ["sync_to_loop", "kaleido_sides", "fold_number", "max_steps", "vortex_density"]:
 			snap_params[p_name] = end_val
 			continue
 			
@@ -661,14 +666,18 @@ func _update_transition_step(weight: float, starts: Dictionary, ends: Dictionary
 		else:
 			current_val = lerp(start, end, weight)
 		
-		# 2. THE STABILITY CLAMPS (Preventing the "Manic" visuals)
+# 2. THE STABILITY CLAMPS (Preventing the "Manic" visuals)
 		if p_name == "step_length":
 			current_val = clamp(current_val, 0.001, 0.05)
 		elif p_name == "max_steps":
 			current_val = clamp(current_val, 1.0, 150.0)
-		elif p_name in ["mask_radius", "fold_zoom", "ray_intensity"]:
-			# These MUST be positive, especially with Elastic/Back curves
-			current_val = max(0.0, current_val)
+		elif p_name in ["mask_radius", "fold_zoom", "ray_intensity", "vortex_state"]:
+			# Ensure these specific sliders never go below zero
+			if current_val is float:
+				current_val = max(0.0, current_val)
+			# If it's a 4D type, we only want to ensure the 'w' (hole size) is positive
+			if current_val is Quaternion or current_val is Vector4:
+				current_val.w = max(0.0, current_val.w)
 			
 		mat.set_shader_parameter(p_name, current_val)
 		_sync_ui_to_param(p_name, current_val)
@@ -689,19 +698,25 @@ func _sync_ui_to_param(p_name: String, val):
 			if not is_equal_approx(slider.value, float(val)):
 				slider.value = float(val)
 		
-		# Case B: 4D Axis sliders (e.g. 'q_rot.x')
+		# Case B: 4D Axis sliders (e.g. 'q_rot.x' or 'vortex_state.w')
 		elif ctrl_name.begins_with(p_name + "."):
-			var parts = ctrl_name.split(".")
-			var axis = parts[1] # "x", "y", "z", or "w"
-			
-			# Check if 'val' is actually a 4D type before accessing [axis]
+			# Only proceed if we actually have 4D data to read from
 			if val is Vector4 or val is Quaternion:
-				slider.value = val[axis]
+				var parts = ctrl_name.split(".")
+				var axis = parts[1] # "x", "y", "z", or "w"
+				
+				# Direct property access is safer and faster than val[axis]
+				match axis:
+					"x": slider.value = val.x
+					"y": slider.value = val.y
+					"z": slider.value = val.z
+					"w": slider.value = val.w
 		
-		# Case C: Color Pickers (Don't try to float() these!)
+		# Case C: Color Pickers
 		elif p_name == "mod_color" and ctrl_name == "mod_color" and val is Color:
-			# If your control has a color picker, update it here
-			pass 
+			# If your 'ctrl' node has a 'color_picker' child, sync it here
+			if ctrl.has_node("ColorPickerButton"):
+				ctrl.get_node("ColorPickerButton").color = val
 
 		slider.step = original_step
 
@@ -753,3 +768,39 @@ func _on_random_morph_button_pressed():
 	
 	# 4. TRIGGER THE MAGIC
 	_on_preset_button_pressed(random_preset)
+	
+func update_performance_monitor():
+	var fps = Engine.get_frames_per_second()
+	# VRAM usage is critical for your 1050 Ti
+	var vram = Performance.get_monitor(Performance.RENDER_VIDEO_MEM_USED) / 1024.0 / 1024.0
+	# Draw calls tell you if the Ray Marching is choking the pipeline
+	var draws = Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME)
+	
+	perf_label.text = "FPS: %d\nVRAM: %.1f MB\nDraws: %d" % [fps, vram, draws]
+	
+	# Color code the FPS so you know when to back off
+	if fps > 55: perf_label.modulate = Color.GREEN
+	elif fps > 30: perf_label.modulate = Color.YELLOW
+	else: perf_label.modulate = Color.RED
+	
+# --- THE VRAM SAFETY VALVE ---
+func _check_gpu_safety():
+	# 1. Measure the current 'Pressure' on the 1050 Ti
+	# We check total Video Memory used by textures and buffers
+	var vram_used = Performance.get_monitor(Performance.RENDER_VIDEO_MEM_USED) / 1024.0 / 1024.0
+	
+	# 2. Set your 'Trip Point'
+	# Since you have 4GB (4096MB), let's get worried at 3.5GB
+	var safety_limit = 3500.0 
+	
+	if vram_used > safety_limit:
+		# TRIP THE BREAKER: Force-lower the heaviest parameters
+		var mat = display_sprite.material as ShaderMaterial
+		
+		# Feedback and Ray Steps are the VRAM 'Gas Guzzlers'
+		var current_feedback = mat.get_shader_parameter("feedback_amount")
+		if current_feedback > 0.1:
+			mat.set_shader_parameter("feedback_amount", 0.0)
+			# Sync the UI so the user knows why it stopped!
+			_sync_ui_to_param("feedback_amount", 0.0)
+			print("VRAM Safety Tripped: Feedback disabled to prevent 1050 Ti crash.")

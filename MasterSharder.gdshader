@@ -1,8 +1,5 @@
 shader_type canvas_item;
 
-
-
-
 uniform vec4 mod_color : source_color = vec4(1.0);
 
 // DESC: ON = Perfect Loops for Exports. OFF = Smooth movement for live play.
@@ -74,10 +71,10 @@ uniform float ray_spread : hint_range(0.1, 10.0, 0.1) = 2.0;
 uniform float ray_softness : hint_range(1.0, 10.0, 0.1) = 3.0;
 
 // DESC: How much the previous "frame" lingers. 0.0 = Crisp, 1.0 = Heavy Trails.
-uniform float feedback_amount : hint_range(0.0, 1.0, 0.01) = 0.0;
+uniform float feedback_amount : hint_range(0.0, 0.5, 0.01) = 0.0;
 
 // DESC: The direction the "ghosts" drift.
-uniform float feedback_drift : hint_range(-0.1, 0.1, 0.001) = 0.0;
+uniform float feedback_drift : hint_range(-0.05, 0.05, 0.001) = 0.0;
 
 
 // DESC: BENDS THE IMAGE IN A 4-D SORTA WAY
@@ -96,6 +93,18 @@ uniform float glitch_style : hint_range(0.0, 1.0, 0.01) = 0.0;
 uniform float glitch_speed : hint_range(1.0, 60.0, 1.0) = 12.0;
 // DESC: Adds a liquid-like waving distortion.
 uniform float wave_strength : hint_range(0.0, 1.0, 0.01) = 0.0;
+
+
+
+// DESC: Vortex Lattice Density (The # of magnetic flux tubes)
+uniform float vortex_density : hint_range(0.0, 50.0, 1.0) = 0.0;
+
+// DESC: Vortex Morph. 0.0 = Static Grid, 1.0 = Liquid Flowing Phase
+uniform float vortex_morph : hint_range(0.0, 1.0, 0.01) = 0.0;
+
+// DESC: 4D Vortex State: X/Y=Shift, Z=Phase, W=Hole Size
+uniform vec4 vortex_state = vec4(0.0, 0.0, 0.0, 0.5);
+
 
 // DESC: Bends the image into a circular 'fisheye' lens.
 uniform float fisheye : hint_range(-1.0, 1.0, 0.01) = 0.0;
@@ -263,6 +272,33 @@ if (abs(hyperbolic_bend) > 0.1) {
     float inversion = (hyperbolic_bend * 0.1) / (r * r + 0.01);    // previous bend type (it works, replaced with next line )
    // float inversion = (breathing_bend * 0.1) / (r * r + 0.01); 
     uv *= inversion;
+}
+
+
+// --- SUPERCONDUCTOR VORTEX LATTICE ---
+// --- TRANSITION-SAFE VORTEX LATTICE ---
+if (vortex_density > 0.1) {
+    // 1. LERP-SAFE DENSITY
+    // If transitioning, this avoids 'half-vortices' by blending with alpha
+    float v_alpha = clamp(vortex_density, 0.0, 1.0); 
+    
+    vec2 v_uv = (uv + vortex_state.xy) * vortex_density;
+    
+    // 2. THE LIQUID SNAP (Synced to your loop)
+    float v_time = mix(manual_time, floor(manual_time), sync_to_loop);
+    v_uv.x += sin(v_uv.y * 0.5 + v_time * tau) * vortex_morph;
+    
+    float v_dist = length(fract(v_uv) - 0.5);
+    
+    // 3. SMOOTH HOLE SIZE
+    // Using smoothstep here allows the 'vortex_state.w' to transition 
+    // without hard pixel jumps.
+    float v_mask = smoothstep(vortex_state.w, vortex_state.w - 0.2, v_dist);
+    
+    // 4. APPLY WITH ALPHA BLEND
+    // This is the key: we multiply the effect by v_alpha so it fades in/out 
+    // during preset transitions instead of 'popping'.
+    uv *= mix(1.0, 1.0 + v_mask, 0.3 * v_alpha);
 }
 
 

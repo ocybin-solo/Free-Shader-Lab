@@ -40,6 +40,9 @@ shader_parameter/glitch_factor = 0.0
 shader_parameter/glitch_style = 0.0
 shader_parameter/glitch_speed = 1.0
 shader_parameter/wave_strength = 0.0
+shader_parameter/vortex_density = 0.0
+shader_parameter/vortex_morph = 0.0
+shader_parameter/vortex_state = Vector4(0, 0, 0, 0.5)
 shader_parameter/fisheye = 0.0
 shader_parameter/hue_shift_speed = 0.0
 shader_parameter/thermal_shift = 0.0
@@ -238,6 +241,10 @@ layout_mode = 2
 min_value = 2.0
 max_value = 200.0
 value = 60.0
+
+[node name="PerfLabel" type="Label" parent="CanvasLayer/MainMenu/MarginContainer/HBoxContainer/LeftPanel/MarginContainer/VBoxContainer" unique_id=2014114792]
+layout_mode = 2
+size_flags_vertical = 10
 
 [node name="quitbutton" type="Button" parent="CanvasLayer/MainMenu/MarginContainer/HBoxContainer/LeftPanel/MarginContainer/VBoxContainer" unique_id=2085687930]
 layout_mode = 2
