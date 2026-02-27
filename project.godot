@@ -16,6 +16,11 @@ run/main_scene="uid://cl1istsaia6ov"
 config/features=PackedStringArray("4.6", "Forward Plus")
 config/icon="res://icon.svg"
 
+[audio]
+
+buses/default_bus_layout="uid://cyunaw8wf78vy"
+driver/enable_input=true
+
 [display]
 
 window/stretch/mode="canvas_items"

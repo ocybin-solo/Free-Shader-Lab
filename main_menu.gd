@@ -21,6 +21,8 @@ extends Control
 @onready var fps_label = $"../../CanvasLayer2/VBoxContainer/FPSLabel"
 @onready var perf_label = $MarginContainer/HBoxContainer/LeftPanel/MarginContainer/VBoxContainer/PerfLabel
 
+@onready var vortex_ear = $"../../VortexEar"
+
 # -- Animation preview stuff 
 var preview_frame_index : int = 0
 var preview_timer : float = 0.0
@@ -69,6 +71,9 @@ func _ready():
 	snap_btn.add_item("Snap at Start", 0)
 	snap_btn.add_item("Snap at Mid-Point", 1)
 	snap_btn.add_item("Snap at End", 2)
+	
+	vortex_ear.audio_pulse.connect(_on_vortex_ear_pulse)
+	
 	
 func _process(delta: float) -> void:
 		# Update the monitor every frame
@@ -804,3 +809,11 @@ func _check_gpu_safety():
 			# Sync the UI so the user knows why it stopped!
 			_sync_ui_to_param("feedback_amount", 0.0)
 			print("VRAM Safety Tripped: Feedback disabled to prevent 1050 Ti crash.")
+			
+			
+			## AUDIYODELOGIC
+			
+func _on_vortex_ear_pulse(bass, mids, highs):
+	var mat = display_sprite.material as ShaderMaterial
+	# Now just apply the 'bass' to your vortex_morph!
+	mat.set_shader_parameter("vortex_morph", bass * 25.0)
