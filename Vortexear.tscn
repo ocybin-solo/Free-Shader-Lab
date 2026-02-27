@@ -11,10 +11,12 @@ script = ExtResource("1_1sif6")
 [node name="microphone" type="AudioStreamPlayer" parent="." unique_id=964951714]
 unique_name_in_owner = true
 stream = SubResource("AudioStreamMicrophone_1sif6")
+autoplay = true
 bus = &"GuitarInput"
 
 [node name="digital" type="AudioStreamPlayer" parent="." unique_id=2083664038]
 unique_name_in_owner = true
 stream = ExtResource("2_3d1xj")
+autoplay = true
 bus = &"MusicInput"
 playback_type = 1

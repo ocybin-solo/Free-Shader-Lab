@@ -16,6 +16,7 @@ func _ready():
 	# 2. Hook up the Music Ear (Bus Index 2)
 	var m_idx = AudioServer.get_bus_index("MusicInput")
 	spectrum_music = AudioServer.get_bus_effect_instance(m_idx, 0)
+	
 func _process(_delta):
 	if not spectrum_guitar or not spectrum_music: return
 	

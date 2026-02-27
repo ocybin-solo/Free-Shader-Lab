@@ -21,7 +21,7 @@ extends Control
 @onready var fps_label = $"../../CanvasLayer2/VBoxContainer/FPSLabel"
 @onready var perf_label = $MarginContainer/HBoxContainer/LeftPanel/MarginContainer/VBoxContainer/PerfLabel
 
-
+@onready var VortexEarNode = %VortexEar
 
 # -- Animation preview stuff 
 var preview_frame_index : int = 0
@@ -72,7 +72,7 @@ func _ready():
 	snap_btn.add_item("Snap at Mid-Point", 1)
 	snap_btn.add_item("Snap at End", 2)
 	
-	%VortexEar.dual_pulse.connect(_on_vortex_ear_dual_pulse)
+
 	
 	
 func _process(delta: float) -> void:
@@ -816,8 +816,8 @@ func _check_gpu_safety():
 func _on_vortex_ear_dual_pulse(guitar_energy: float, music_energy: float):
 	var mat = display_sprite.material as ShaderMaterial
 	if not mat: return
+		# Sync the UI sliders so you can see the 'ghost' movement
+	_sync_ui_to_param("vortex_morph", guitar_energy * 100.0)
+	_sync_ui_to_param("ray_intensity", music_energy * 100.0)
+
 	
-	# We use the data to wiggle the 4D math!
-	# The 60.0 and 40.0 are 'Sensitivity' multipliers.
-	mat.set_shader_parameter("vortex_morph", guitar_energy * 60.0)
-	mat.set_shader_parameter("ray_intensity", music_energy * 40.0)

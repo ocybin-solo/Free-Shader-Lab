@@ -388,3 +388,4 @@ unique_name_in_owner = true
 [connection signal="pressed" from="CanvasLayer/MainMenu/MarginContainer/HBoxContainer/MidPanel/MarginContainer/VBoxContainer/HBoxContainer/ExportLogicButton" to="CanvasLayer/MainMenu" method="_on_export_logic_button_pressed"]
 [connection signal="pressed" from="CanvasLayer/MainMenu/MarginContainer/HBoxContainer/MidPanel/MarginContainer/VBoxContainer/HBoxContainer/ResetAllButton" to="CanvasLayer/MainMenu" method="_on_reset_all_button_pressed"]
 [connection signal="pressed" from="CanvasLayer2/VBoxContainer/StopPreviewButton" to="CanvasLayer/MainMenu" method="_on_stop_button_pressed"]
+[connection signal="dual_pulse" from="VortexEar" to="CanvasLayer/MainMenu" method="_on_vortex_ear_dual_pulse"]
