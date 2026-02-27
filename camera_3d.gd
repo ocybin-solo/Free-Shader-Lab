@@ -33,7 +33,8 @@ func _unhandled_input(event):
 		quaternion = (quaternion * yaw * pitch).normalized()
 		
 func _input(event):
-	if event.is_action_pressed("place_boombox"):
-		var box = boombox_scene.instantiate()
-		get_parent().add_child(box)
-		box.global_position = global_position + (quaternion * Vector3(0,0,-5))
+	if Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
+		if event.is_action_pressed("place_boombox"):
+			var box = boombox_scene.instantiate()
+			get_parent().add_child(box)
+			box.global_position = global_position + (quaternion * Vector3(0,0,-5))

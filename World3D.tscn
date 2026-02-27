@@ -1,20 +1,15 @@
 [gd_scene format=3 uid="uid://btjen3nq0e4bx"]
 
-[ext_resource type="Shader" uid="uid://cy875hv62m31p" path="res://vortex_3d.gdshader" id="1_by4yc"]
 [ext_resource type="Script" uid="uid://bec1g7rvh22lc" path="res://camera_3d.gd" id="2_j7kei"]
 
-[sub_resource type="ShaderMaterial" id="ShaderMaterial_lkq30"]
-render_priority = 0
-shader = ExtResource("1_by4yc")
-
 [sub_resource type="SphereMesh" id="SphereMesh_2vx13"]
-material = SubResource("ShaderMaterial_lkq30")
 
 [sub_resource type="Shader" id="Shader_by4yc"]
 code = "shader_type spatial;
 render_mode unshaded;
 
 // THIS is the bridge to your 2D Sprite/SubViewport
+
 uniform sampler2D main_texture : source_color;
 
 
@@ -580,9 +575,13 @@ ALPHA = tex.a * mod_color.a;
 	}
 	"
 
+[sub_resource type="ViewportTexture" id="ViewportTexture_o853b"]
+
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_j7kei"]
+resource_local_to_scene = true
 render_priority = 0
 shader = SubResource("Shader_by4yc")
+shader_parameter/main_texture = SubResource("ViewportTexture_o853b")
 shader_parameter/mod_color = Color(1, 1, 1, 1)
 shader_parameter/sync_to_loop = 0.0
 shader_parameter/mask_radius = 1.0
@@ -638,6 +637,7 @@ background_mode = 1
 [node name="World3d" type="Node3D" unique_id=730218681]
 
 [node name="MeshInstance3D" type="MeshInstance3D" parent="." unique_id=86874916]
+unique_name_in_owner = true
 mesh = SubResource("SphereMesh_2vx13")
 surface_material_override/0 = SubResource("ShaderMaterial_j7kei")
 

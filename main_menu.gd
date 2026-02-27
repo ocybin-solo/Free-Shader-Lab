@@ -24,6 +24,7 @@ extends Control
 @onready var VortexEarNode = %VortexEar
 # If you used the '%' Unique Name trick:
 @onready var camera_3d = %Camera3D 
+@onready var my_sphere = %MeshInstance3D
 
 # -- Animation preview stuff 
 var preview_frame_index : int = 0
@@ -77,8 +78,15 @@ func _ready():
 	snap_btn.add_item("Snap at Start", 0)
 	snap_btn.add_item("Snap at Mid-Point", 1)
 	snap_btn.add_item("Snap at End", 2)
-	
-
+	var mat = my_sphere.get_surface_override_material(0) as ShaderMaterial
+	if mat:
+		# 3. Create a NEW ViewportTexture in code (this bypasses the 'Pick' menu)
+		var vp_tex = ViewportTexture.new()
+		# 4. Tell it exactly where to look
+		vp_tex.viewport_path = sub_viewport.get_path()
+		# 5. Push it into the shader!
+		mat.set_shader_parameter("main_texture", vp_tex)
+		print("3D Bridge Synchronized: Viewport is now streaming to the Sphere.")
 	
 	
 func _process(delta: float) -> void:
@@ -352,6 +360,11 @@ func parse_shader_descriptions(path):
 	return dict
 
 func _input(event):
+		# IF WE ARE IN THE VOID, STOP 2D INPUTS IMMEDIATELY
+	if is_in_void:
+		if event.is_action_pressed("ui_cancel"):
+			_on_3d_toggle_pressed() # Jump back to menu
+		return # Exit early so 2D logic below doesn't run!
 	if not viewport_container.get_global_rect().has_point(get_global_mouse_position()):
 		return
 	if event.is_action_pressed("zoom_in"): zoom_camera(zoom_speed)
@@ -359,9 +372,7 @@ func _input(event):
 	if event.is_action("pan"): is_panning = event.pressed
 	if event is InputEventMouseMotion and is_panning:
 		camera.position -= event.relative / camera.zoom.x
-	if event.is_action_pressed("ui_cancel"): # Usually the 'Escape' key
-		stop_preview()
-		# Press ESC to jump back to the Menu
+
 	
 
 
