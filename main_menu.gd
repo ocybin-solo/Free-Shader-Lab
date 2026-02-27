@@ -564,52 +564,86 @@ func _on_preset_button_pressed(file_name: String):
 	if not preset: return
 	
 	var mat = display_sprite.material as ShaderMaterial
-	# We use TRANS_SINE for a "softer" start and stop to the transition
-	var tween = create_tween().set_parallel(true).set_trans(Tween.TRANS_SINE)
+	var start_states = {}
+	var end_states = {}
 
 	for p_name in preset.parameters.keys():
-		# --- CRITICAL: SKIP MANUAL_TIME ---
-		# This lets the app's clock keep ticking naturally while values shift
-		if p_name == "manual_time": continue
-		
-		var start_val = mat.get_shader_parameter(p_name)
 		var end_val = preset.get_param(p_name)
 		
-		# Set Sync instantly to avoid mid-tween math glitches
-		if p_name == "sync_to_loop":
+		# --- STAGE 1: THE INSTANT SNAP BLOCK ---
+		# Place this first to catch "illegal" transition values
+		if p_name == "sync_to_loop" or p_name == "kaleido_sides" or p_name == "fold_number":
 			mat.set_shader_parameter(p_name, end_val)
-			continue
+			_sync_ui_to_param(p_name, end_val) # Update slider position instantly
+			continue # Skip the tween logic for these!
 
-		if start_val == null: continue
-
-		# --- 1. SHADER MATH TWEENING ---
-		if start_val is Quaternion and end_val is Quaternion:
-			tween.tween_method(
-				func(v): mat.set_shader_parameter(p_name, v),
-				start_val,
-				end_val,
-				transition_time
-			)
-		else:
-			tween.tween_property(mat, "shader_parameter/" + p_name, end_val, transition_time)
+		# --- STAGE 2: PREPARATION FOR MORPH ---
+		if p_name == "manual_time": continue
 		
-		# --- 2. UI SLIDER TWEENING ---
-		for ctrl in controls_container.get_children():
-			if not ctrl.has_method("get_param_name"): continue
-			var ctrl_name = ctrl.get_param_name()
-			
-			if ctrl_name == p_name:
-				tween.tween_property(ctrl.slider, "value", end_val, transition_time)
-			elif ctrl_name.begins_with(p_name + "."):
-				var parts = ctrl_name.split(".")
-				var axis = parts[1]
-				
-				# Fixed type check for Vector4/Quaternion
-				if end_val is Vector4 or end_val is Quaternion:
-					var axis_val = end_val[axis]
-					tween.tween_property(ctrl.slider, "value", axis_val, transition_time)
+		var s_val = mat.get_shader_parameter(p_name)
+		if s_val != null:
+			start_states[p_name] = s_val
+			end_states[p_name] = end_val
 
-	print("Smooth Transition Initiated: ", file_name)
+	# --- STAGE 3: THE MASTER MORPH ---
+	var tween = create_tween().set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	tween.tween_method(
+		func(weight): _update_transition_step(weight, start_states, end_states, mat),
+		0.0, 1.0, transition_time
+	)
+
+
+	
+# --- HELPER 1: THE STEPPER ---
+func _update_transition_step(weight: float, starts: Dictionary, ends: Dictionary, mat: ShaderMaterial):
+	for p_name in starts.keys():
+		var start = starts[p_name]
+		var end = ends[p_name]
+		var current_val
+		
+		# TYPE-SPECIFIC INTERPOLATION
+		if start is Quaternion:
+			current_val = start.slerp(end, weight) # Essential for smooth 4D rotation
+		elif start is Color or start is Vector4 or start is Vector3:
+			current_val = start.lerp(end, weight)
+		elif start is float or start is int:
+			current_val = lerp(start, float(end), weight)
+		else:
+			current_val = end # Fallback for non-interpolatable types
+			
+		mat.set_shader_parameter(p_name, current_val)
+		
+		# Sync the UI sliders (only every 3rd frame to save CPU overhead)
+		if Engine.get_frames_drawn() % 3 == 0:
+			_sync_ui_to_param(p_name, current_val)
+
+# --- HELPER 2: THE UI SYNC ---
+func _sync_ui_to_param(p_name: String, val):
+	for ctrl in controls_container.get_children():
+		if not ctrl.has_method("get_param_name"): continue
+		var ctrl_name = ctrl.get_param_name()
+		
+		# --- THE SMOOTHNESS FIX ---
+		# We set 'step' to 0 temporarily so the slider can move 
+		# smoothly to any decimal during the 10s morph.
+		var slider = ctrl.slider
+		var original_step = slider.step
+		slider.step = 0 # 0 means "unlimited precision" in Godot
+		
+		# Handle standard float sliders
+		if ctrl_name == p_name:
+			# Only update if the value is actually different to save CPU
+			if not is_equal_approx(slider.value, float(val)):
+				slider.value = val
+		
+		# Handle 4D Axis sliders (e.g. q_rot.x)
+		elif ctrl_name.begins_with(p_name + "."):
+			var axis = ctrl_name.split(".")[1]
+			if val is Vector4 or val is Quaternion:
+				slider.value = val[axis]
+				
+		# Restore the step after the morph ends (Optional)
+		# Or just leave it at 0 during the tween and reset it once the tween finishes.
 
 func _on_transition_speed_changed(value):
 	transition_time = value

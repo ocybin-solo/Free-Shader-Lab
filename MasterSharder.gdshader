@@ -9,7 +9,7 @@ uniform vec4 mod_color : source_color = vec4(1.0);
 uniform float sync_to_loop : hint_range(0.0, 1.0, 1.0) = 0.0;
 
 // DESC: The image won't draw outside the size of this circle
-uniform float mask_radius : hint_range(0.0, 1.0, 0.01) = 1.0;
+uniform float mask_radius : hint_range(0.01, 1.0, 0.01) = 1.0;
 // --- 1. COORDINATE WARPING (UV) ---
 // DESC: stretch a mask to hide outside the radius
 uniform float mask_stretch : hint_range(0.1, 6.1) = 1.0;
@@ -43,18 +43,38 @@ uniform float hex_rot_speed : hint_range(0.0, 5.0, 0.1) = 0.0;
 uniform float mirror_4way : hint_range(0.0, 1.0, 1.0) = 0.0;
 
 //RAY MARCHING DECLARATIONS
-// DESC: RAY ANGLE
-uniform float ray_angle : hint_range(0.0, 6.28, 0.5) = 0.0;
-// DESC: HIGH VALUES SEEM GOOD HERE - IN COMBO W OTHER RAY-MARCHING SLIDERS
-uniform float max_steps : hint_range(10.0, 300.0, 1.0) = 100.0;
-// DESC: LOW VALUES SEEM BETTER TO ME - THIS IS A RAY MARCHING SLIDER
+// DESC: Rotation angle of the ray emission.
+uniform float ray_angle : hint_range(0.0, 6.28, 0.1) = 0.0;
+
+// DESC: Precision of the ray. Higher = longer rays, more GPU usage.
+uniform float max_steps : hint_range(10.0, 150.0, 1.0) = 64.0;
+
+// DESC: Distance each ray travels per step. Controls ray reach.
 uniform float step_length : hint_range(0.001, 0.1, 0.001) = 0.01;
-// DESC: THIS LOOKS LIKE SHINING A LIGHT FROM A DIRECTION - RAY MARCHING
-uniform float ray_intensity : hint_range(0.0, 1.0, 0.1) = 0.0; // Default to 0 (Off)
-// DESC: RAY-MARCHING COLOR
+
+// DESC: Master brightness of the volumetric glow.
+uniform float ray_intensity : hint_range(0.0, 2.0, 0.1) = 0.0;
+
+// DESC: The base color of the light trails.
 uniform vec4 ray_color : source_color = vec4(1.0, 0.5, 0.0, 1.0);
+
+// DESC: Blends between solid color (0.0) and cycling rainbow (1.0).
+uniform float ray_rainbow_mix : hint_range(0.0, 1.0, 0.01) = 0.5;
+
+// DESC: Speed of the rainbow color shift.
+uniform float ray_cycle_speed : hint_range(0.0, 5.0, 0.1) = 1.0;
+
+// DESC: Frequency of the "breathing" animation. 0.0 is steady.
+uniform float ray_pulse_freq : hint_range(0.0, 10.0, 0.1) = 0.0;
+
+// DESC: Falloff distance. Higher = rays stretch further from the image.
+uniform float ray_spread : hint_range(0.1, 10.0, 0.1) = 2.0;
+
+// DESC: Edge sharpness. 1.0 is sharp, 10.0 is misty/diffuse.
+uniform float ray_softness : hint_range(1.0, 10.0, 0.1) = 3.0;
+
 // DESC: BENDS THE IMAGE IN A 4-D SORTA WAY
-uniform float hyperbolic_bend : hint_range(-5.0, 5.0) = 0.0;
+uniform float hyperbolic_bend : hint_range(0.01, 3.0, 0.001) = 0.10;
 
 
 // DESC: QUATERNIONS?
@@ -63,7 +83,10 @@ uniform vec4 q_rot = vec4(0.0, 0.0, 0.0, 1.0); // x, y, z, w (1.0 is no rotation
 uniform float tumble_strength : hint_range(0.0, 1.0) = 0.5;
 // DESC : Corrupt the "purity" of the math, LOL 
 uniform float glitch_factor : hint_range(0.0, 1.0) = 0.0;
-
+// DESC: 0.0 = Liquid Morph, 1.0 = Digital Stepping (effects the glitch factor)
+uniform float glitch_style : hint_range(0.0, 1.0, 0.01) = 0.0;
+// DESC: How many "steps" or "jumps" per second in Digital mode.
+uniform float glitch_speed : hint_range(1.0, 60.0, 1.0) = 12.0;
 // DESC: Adds a liquid-like waving distortion.
 uniform float wave_strength : hint_range(0.0, 1.0, 0.01) = 0.0;
 
@@ -220,11 +243,6 @@ if (swirl_strength > 0.01) {
 //}
 
 
-// Add this right before your Inversion/Warp logic
-// Use this for a silky smooth, hypnotic pulse
-// manual_time * tau * 0.1 means one full "breath" every 10 seconds
-//float breathing_cycle = sin(manual_time * tau * 0.1); 
-//float breathing_bend = hyperbolic_bend + (breathing_cycle * 0.15);   //this breathing logic looks more like a desynced loop
 
 
 // --- HYPERBOLIC INVERSION (The 'Infinite Mirror' look) ---
@@ -238,22 +256,30 @@ if (abs(hyperbolic_bend) > 0.1) {
 }
 
 
-// --- QUATERNION UV TUMBLE (WITH GLITCH MODE) ---
-if (tumble_strength > 0.0) {
-    // 0. The Glitch Mix: 0.0 = Pure Sphere, 1.0 = Out of Whack
-    vec4 q_pure = normalize(q_rot);
-    vec4 q = mix(q_pure, q_rot, glitch_factor); 
+// --- QUATERNION UV TUMBLE (WITH DIGITAL/LIQUID MORPH) ---
+if (tumble_strength > 0.01) {
+    float safe_time = mod(manual_time, 10.0);
     
-    // 1. Map UV to 3D unit sphere (the "bubble")
+    // --- THE STUTTER LOGIC ---
+    // Higher glitch_speed = more rapid jumps.
+    float digital_steps = floor(safe_time * glitch_speed) / glitch_speed; 
+    
+    // Mix between smooth 'safe_time' and jagged 'digital_steps'
+    float morphed_time = mix(safe_time, digital_steps, glitch_style);
+    
     vec3 p = vec3(uv, sqrt(max(0.0, 1.0 - dot(uv, uv))));
     
-    // 2. Quaternion Rotation Math
+    // Add noise only when glitch_style is active
+    float noise = rand(vec2(digital_steps)) * glitch_style;
+    vec4 q_jitter = q_rot + (sin(morphed_time * 4.0) + noise) * glitch_factor;
+    vec4 q = normalize(mix(q_rot, q_jitter, glitch_factor)); 
+    
+    // Rotation Math
     vec3 q_xyz = q.xyz;
     float q_w = q.w;
     vec3 temp = cross(q_xyz, p) + q_w * p;
     vec3 p_rotated = p + 2.0 * cross(q_xyz, temp);
     
-    // 3. Project back to 2D and mix based on strength
     uv = mix(uv, p_rotated.xy, tumble_strength);
 }
 
@@ -277,62 +303,55 @@ if (tumble_strength > 0.0) {
 		tex = texture(TEXTURE, wrapped_uv);
 	}
 	
-
-// --- RAINBOW HYPERBOLIC ----  RAY MARCHER --- START OF CODE BLOCK
-// --- 5. RAY MARCHING (Now it knows what 'tex' is) ---
+// --- CONTROLLED RAINBOW PORTAL ---
 if (ray_intensity > 0.01) {
     vec2 current_pos = wrapped_uv; 
     float hit_dist = -1.0;
-    float final_angle = ray_angle; 
+    float accum_density = 0.0;
 
-
-    for (int i = 0; i < int(max_steps); i++) { // Cast to int here!
+    for (int i = 0; i < int(max_steps); i++) {
         float d_center = length(current_pos - 0.5);
-		float pulse_freq = mix(1.0, floor(1.0), sync_to_loop);
-		float portal_pulse = sin(manual_time * tau * pulse_freq + (1.0 / (d_center + 0.01)));
-        final_angle += d_center * (hyperbolic_bend * 0.2);
-        vec2 bent_dir = vec2(cos(final_angle), sin(final_angle));
         
-        current_pos += bent_dir * (step_length * float(i) * 0.001); 
+        // Twist the rays using the angle and hyperbolic bend
+        float spiral = ray_angle + (d_center * hyperbolic_bend * 2.0);
+        vec2 bent_dir = vec2(cos(spiral), sin(spiral));
         
-        if (texture(TEXTURE, fract(current_pos)).a > 0.5) {
-            hit_dist = float(i) / max_steps;
-            break;
+        current_pos += bent_dir * step_length; 
+        
+        // Use fract() to ensure we stay within the texture bounds
+        float sample_a = texture(TEXTURE, fract(current_pos)).a;
+        if (sample_a > 0.1) {
+            // "Shadow" logic: light is absorbed as it hits solid parts
+            accum_density += (1.0 - accum_density) * (sample_a * 0.2); 
+            if (hit_dist < 0.0) hit_dist = float(i) / max_steps;
         }
+        if (accum_density > 0.95) break;
     }
 
-    if (hit_dist > -1.0) {
-        float fade = 1.0 - hit_dist;
-        
-        // --- TRIPPY COLOR LOGIC ---
-        vec3 rainbow_hit;
-        rainbow_hit.r = sin(final_angle);
-        rainbow_hit.g = sin(final_angle + 2.0);
-        rainbow_hit.b = sin(final_angle + 4.0);
-        rainbow_hit = rainbow_hit * 0.5 + 0.5;
+ if (hit_dist > -1.0) {
+        // 1. CALCULATE THE PULSE FIRST
+        float pulse_val = 1.0;
+        if (ray_pulse_freq > 0.01) {
+            float p_freq = mix(ray_pulse_freq, floor(ray_pulse_freq), sync_to_loop);
+            pulse_val = sin(manual_time * tau * p_freq) * 0.5 + 0.5;
+        }
 
-        // --- PORTAL PULSE MATH ---
-        float d_center = length(current_pos - 0.5);
-        float portal_pulse = sin(manual_time * tau + (1.0 / (d_center + 0.01)));
+        // 2. NOW CALCULATE INTENSITY (Using pulse_val)
+        float falloff = pow(1.0 - hit_dist, ray_softness);
+        float final_intensity = falloff * ray_intensity * ray_spread * pulse_val * accum_density;
         
-        // Use mod_color (your UI color picker) for the base glow
-        vec3 final_glow = mix(mod_color.rgb, rainbow_hit, 0.7);
-        final_glow = mix(final_glow, vec3(1.0), portal_pulse * 0.3 * ray_intensity);
-        
-        float mask_orig = 1.0 - tex.a; 
-        
-        // 1. Apply the broad, soft glow (Original mix)
-        tex.rgb = mix(tex.rgb, final_glow, fade * ray_intensity * mask_orig);
+        // 3. COLOR & RAINBOW
+        float cycle_speed = mix(ray_cycle_speed, floor(ray_cycle_speed), sync_to_loop);
+        float color_phase = (manual_time * tau * cycle_speed) + (hit_dist * 5.0);
+        vec3 rainbow = vec3(sin(color_phase)*0.5+0.5, sin(color_phase+2.0)*0.5+0.5, sin(color_phase+4.0)*0.5+0.5);
+        vec3 final_glow_color = mix(ray_color.rgb, rainbow, ray_rainbow_mix);
 
-        // 2. ADD THIS: The Sharp "Event Horizon" Edge
-        // pow(fade, 5.0) makes the glow very tight to the edge of the image
-        float horizon_glow = pow(fade, 5.0); 
-        tex.rgb += mod_color.rgb * horizon_glow * ray_intensity * 2.0;
-
-        // 3. Update Alpha so the glow shows up on transparent backgrounds
-        tex.a = max(tex.a, fade * ray_intensity);
+        // 4. APPLY TO IMAGE
+        tex.rgb += final_glow_color * final_intensity; 
+        tex.a = clamp(tex.a + (final_intensity * 0.5), 0.0, 1.0);
     }
-} // <--- Close the Ray Marching Block// 
+} // END OF RAY MARCHING
+
 
 // --- RADIAL PLASMA (Perfectly Synced) ---
 if (plasma_strength > 0.0) {
