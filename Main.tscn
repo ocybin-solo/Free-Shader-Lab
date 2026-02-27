@@ -119,15 +119,23 @@ layout_mode = 2
 
 [node name="HSlider" type="HSlider" parent="CanvasLayer/MainMenu/MarginContainer/HBoxContainer/LeftPanel/MarginContainer/VBoxContainer/PresetContainer/MarginContainer/VBoxContainer" unique_id=899212549]
 layout_mode = 2
-max_value = 10.0
+tooltip_text = "Transition Speed"
+max_value = 60.0
 step = 0.1
-value = 1.5
+value = 10.0
 
-[node name="Label" type="Label" parent="CanvasLayer/MainMenu/MarginContainer/HBoxContainer/LeftPanel/MarginContainer/VBoxContainer/PresetContainer/MarginContainer/VBoxContainer" unique_id=1943944698]
+[node name="TransitionTypeButton" type="OptionButton" parent="CanvasLayer/MainMenu/MarginContainer/HBoxContainer/LeftPanel/MarginContainer/VBoxContainer/PresetContainer/MarginContainer/VBoxContainer" unique_id=1213945718]
+unique_name_in_owner = true
 layout_mode = 2
-theme_override_font_sizes/font_size = 14
-text = "^ Transition Speed ^"
-horizontal_alignment = 1
+
+[node name="SnapTimingButton" type="OptionButton" parent="CanvasLayer/MainMenu/MarginContainer/HBoxContainer/LeftPanel/MarginContainer/VBoxContainer/PresetContainer/MarginContainer/VBoxContainer" unique_id=1673493284]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="RandomizerButton" type="Button" parent="CanvasLayer/MainMenu/MarginContainer/HBoxContainer/LeftPanel/MarginContainer/VBoxContainer/PresetContainer/MarginContainer/VBoxContainer" unique_id=117632382]
+layout_mode = 2
+theme_override_font_sizes/font_size = 10
+text = "Surprise"
 
 [node name="PresetScrollContainer" type="ScrollContainer" parent="CanvasLayer/MainMenu/MarginContainer/HBoxContainer/LeftPanel/MarginContainer/VBoxContainer/PresetContainer/MarginContainer/VBoxContainer" unique_id=1744165883]
 custom_minimum_size = Vector2(0, 50)
@@ -146,7 +154,10 @@ placeholder_text = "Save preset name..."
 
 [node name="SavePresetButton" type="Button" parent="CanvasLayer/MainMenu/MarginContainer/HBoxContainer/LeftPanel/MarginContainer/VBoxContainer/PresetContainer/MarginContainer/VBoxContainer" unique_id=77727959]
 layout_mode = 2
+size_flags_horizontal = 0
+size_flags_vertical = 0
 tooltip_text = "Save's the current values of all sliders in the right panel"
+theme_override_font_sizes/font_size = 10
 text = "Save Preset"
 
 [node name="ColorPickerButton" type="ColorPickerButton" parent="CanvasLayer/MainMenu/MarginContainer/HBoxContainer/LeftPanel/MarginContainer/VBoxContainer" unique_id=308108067]
@@ -161,6 +172,7 @@ filters = PackedStringArray("*.png", "*.jpg")
 
 [node name="L_Filtering" type="Label" parent="CanvasLayer/MainMenu/MarginContainer/HBoxContainer/LeftPanel/MarginContainer/VBoxContainer" unique_id=1123144003]
 layout_mode = 2
+theme_override_font_sizes/font_size = 10
 text = "Filtering Methods"
 horizontal_alignment = 1
 
@@ -178,14 +190,17 @@ popup/item_2/id = 2
 [node name="B_Import" type="Button" parent="CanvasLayer/MainMenu/MarginContainer/HBoxContainer/LeftPanel/MarginContainer/VBoxContainer" unique_id=177726377]
 layout_mode = 2
 tooltip_text = "Import a *.png or *.jpg from your file system"
+theme_override_font_sizes/font_size = 10
 text = "Import Image"
 
 [node name="B_Save" type="Button" parent="CanvasLayer/MainMenu/MarginContainer/HBoxContainer/LeftPanel/MarginContainer/VBoxContainer" unique_id=1939651797]
 layout_mode = 2
+theme_override_font_sizes/font_size = 10
 text = "Export Image"
 
 [node name="AnimToggle" type="CheckButton" parent="CanvasLayer/MainMenu/MarginContainer/HBoxContainer/LeftPanel/MarginContainer/VBoxContainer" unique_id=1654624165]
 layout_mode = 2
+theme_override_font_sizes/font_size = 10
 text = "export as spritesheet?"
 
 [node name="animspeedbutton" type="Label" parent="CanvasLayer/MainMenu/MarginContainer/HBoxContainer/LeftPanel/MarginContainer/VBoxContainer" unique_id=202972058]
@@ -203,6 +218,7 @@ value = 1.0
 
 [node name="Label3" type="Label" parent="CanvasLayer/MainMenu/MarginContainer/HBoxContainer/LeftPanel/MarginContainer/VBoxContainer" unique_id=1020040489]
 layout_mode = 2
+theme_override_font_sizes/font_size = 10
 text = "Sprite Sheet Rows"
 horizontal_alignment = 1
 
@@ -214,6 +230,7 @@ value = 10.0
 
 [node name="framecountlabel" type="Label" parent="CanvasLayer/MainMenu/MarginContainer/HBoxContainer/LeftPanel/MarginContainer/VBoxContainer" unique_id=836497204]
 layout_mode = 2
+theme_override_font_sizes/font_size = 10
 text = "Number of frames"
 
 [node name="FrameCountSpinbox" type="SpinBox" parent="CanvasLayer/MainMenu/MarginContainer/HBoxContainer/LeftPanel/MarginContainer/VBoxContainer" unique_id=417555783]
@@ -253,7 +270,7 @@ mouse_target = true
 [node name="SubViewport" type="SubViewport" parent="CanvasLayer/MainMenu/MarginContainer/HBoxContainer/MidPanel/MarginContainer/VBoxContainer/SubViewportContainer" unique_id=438583877]
 transparent_bg = true
 handle_input_locally = false
-size = Vector2i(623, 526)
+size = Vector2i(671, 526)
 render_target_update_mode = 4
 
 [node name="Sprite2D" type="Sprite2D" parent="CanvasLayer/MainMenu/MarginContainer/HBoxContainer/MidPanel/MarginContainer/VBoxContainer/SubViewportContainer/SubViewport" unique_id=2059662500]
@@ -348,6 +365,7 @@ max_value = 60.0
 value = 10.0
 
 [connection signal="value_changed" from="CanvasLayer/MainMenu/MarginContainer/HBoxContainer/LeftPanel/MarginContainer/VBoxContainer/PresetContainer/MarginContainer/VBoxContainer/HSlider" to="CanvasLayer/MainMenu" method="_on_transition_speed_changed"]
+[connection signal="pressed" from="CanvasLayer/MainMenu/MarginContainer/HBoxContainer/LeftPanel/MarginContainer/VBoxContainer/PresetContainer/MarginContainer/VBoxContainer/RandomizerButton" to="CanvasLayer/MainMenu" method="trigger_random_morph"]
 [connection signal="pressed" from="CanvasLayer/MainMenu/MarginContainer/HBoxContainer/LeftPanel/MarginContainer/VBoxContainer/PresetContainer/MarginContainer/VBoxContainer/SavePresetButton" to="CanvasLayer/MainMenu" method="_on_save_preset_button_pressed"]
 [connection signal="color_changed" from="CanvasLayer/MainMenu/MarginContainer/HBoxContainer/LeftPanel/MarginContainer/VBoxContainer/ColorPickerButton" to="CanvasLayer/MainMenu" method="_on_color_picker_button_color_changed"]
 [connection signal="file_selected" from="CanvasLayer/MainMenu/MarginContainer/HBoxContainer/LeftPanel/MarginContainer/VBoxContainer/OpenFile" to="CanvasLayer/MainMenu" method="_on_file_dialog_file_selected"]

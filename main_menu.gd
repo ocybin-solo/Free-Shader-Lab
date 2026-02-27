@@ -45,18 +45,28 @@ var transition_time: float = 1.5 # for transition between presets
 func _ready():
 
 	create_dynamic_controls()
-	
-	# THE FIX: Wait until the end of the frame so the new sliders are 'ready'
 
-	
 
-	
-	# Your existing warning label logic
 	var tween = create_tween()
-	tween.tween_property(warning_label, "modulate:a", 0.0, 5.0)
+	tween.tween_property(warning_label, "modulate:a", 0.0, 5.0) # P-Sens Warning tween
 	tween.tween_callback(warning_label.hide)
 	
 	refresh_preset_list()
+		# 1. Setup Easing Dropdown
+	var trans_btn = %TransitionTypeButton
+	trans_btn.clear()
+	trans_btn.add_item("Sine (Smooth)", 0)
+	trans_btn.add_item("Expo (Surge)", 1)
+	trans_btn.add_item("Elastic (Jelly)", 2)
+	trans_btn.add_item("Back (Cinematic)", 3)
+	trans_btn.add_item("Bounce (Impact)", 4)
+	
+	# 2. Setup Snap Timing Dropdown
+	var snap_btn = %SnapTimingButton
+	snap_btn.clear()
+	snap_btn.add_item("Snap at Start", 0)
+	snap_btn.add_item("Snap at Mid-Point", 1)
+	snap_btn.add_item("Snap at End", 2)
 	
 func _process(delta: float) -> void:
 	if is_playing_gif and captured_frames.size() > 0:
@@ -581,21 +591,20 @@ func _on_preset_button_pressed(file_name: String):
 	var mat = display_sprite.material as ShaderMaterial
 	var start_states = {}
 	var end_states = {}
+	var snap_params = {} # Holds the "Integer/Structural" values
 
+	# --- STAGE 1: SORT PARAMETERS ---
 	for p_name in preset.parameters.keys():
 		var end_val = preset.get_param(p_name)
-				# --- THE LOADING PURITY FILTER ---
-		if end_val is Quaternion:
-			end_val = end_val.normalized() 
 		
-		# --- STAGE 1: THE INSTANT SNAP BLOCK ---
-		# Place this first to catch "illegal" transition values
-		if p_name == "sync_to_loop" or p_name == "kaleido_sides" or p_name == "fold_number" or p_name == "max_steps":
-			mat.set_shader_parameter(p_name, end_val)
-			_sync_ui_to_param(p_name, end_val) # Update slider position instantly
-			continue # Skip the tween logic for these!
-
-		# --- STAGE 2: PREPARATION FOR MORPH ---
+		# Always normalize Quats on load for "Pure Math"
+		if end_val is Quaternion: end_val = end_val.normalized()
+		
+		# Identify the "Snap" parameters
+		if p_name in ["sync_to_loop", "kaleido_sides", "fold_number", "max_steps"]:
+			snap_params[p_name] = end_val
+			continue
+			
 		if p_name == "manual_time": continue
 		
 		var s_val = mat.get_shader_parameter(p_name)
@@ -603,8 +612,30 @@ func _on_preset_button_pressed(file_name: String):
 			start_states[p_name] = s_val
 			end_states[p_name] = end_val
 
-	# --- STAGE 3: THE MASTER MORPH ---
-	var tween = create_tween().set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	# --- STAGE 2: CALCULATE EASING & SNAP DELAY ---
+	var trans_type = Tween.TRANS_SINE
+	match %TransitionTypeButton.selected:
+		1: trans_type = Tween.TRANS_EXPO
+		2: trans_type = Tween.TRANS_ELASTIC
+		3: trans_type = Tween.TRANS_BACK
+		4: trans_type = Tween.TRANS_BOUNCE
+
+	var snap_delay = 0.0 # Snap at Start
+	match %SnapTimingButton.selected:
+		1: snap_delay = transition_time / 2.0 # Mid-Point
+		2: snap_delay = transition_time # At the End
+
+	# --- STAGE 3: THE TWEEN ---
+	var tween = create_tween().set_parallel(true).set_trans(trans_type).set_ease(Tween.EASE_IN_OUT)
+
+	# The "Delayed Snap" Callback
+	tween.tween_callback(func():
+		for p in snap_params:
+			mat.set_shader_parameter(p, snap_params[p])
+			_sync_ui_to_param(p, snap_params[p])
+	).set_delay(snap_delay)
+
+	# The Master Morph
 	tween.tween_method(
 		func(weight): _update_transition_step(weight, start_states, end_states, mat),
 		0.0, 1.0, transition_time
@@ -684,3 +715,39 @@ func _delete_preset(file_name: String):
 		# Or use: DirAccess.remove_absolute(path) if you want it gone forever
 		print("4D Archive: Deleted ", file_name)
 		refresh_preset_list() # Re-scan the folder to update the UI
+
+func trigger_random_morph():
+	# 1. Get the list of saved presets
+	var path = "user://presets/"
+	if not DirAccess.dir_exists_absolute(path): return
+	
+	var files = []
+	var dir = DirAccess.open(path)
+	dir.list_dir_begin()
+	
+	var file_name = dir.get_next()
+	while file_name != "":
+		if not dir.current_is_dir() and file_name.ends_with(".tres"):
+			files.append(file_name)
+		file_name = dir.get_next()
+	
+	if files.size() == 0:
+		print("VFX Error: No presets found to randomize!")
+		return
+
+	# 2. Pick a random Preset from your library
+	var random_file = files[randi() % files.size()]
+	
+	# 3. Randomize the Transition "Personality"
+	# We have 5 Easings (0-4) and 3 Snap Timings (0-2)
+	%TransitionTypeButton.selected = randi() % 5
+	%SnapTimingButton.selected = randi() % 3
+	
+	# 4. Randomize the Morph Speed (Optional, but fun!)
+	# Pick a transition time between 2.0 and 12.0 seconds
+	transition_time = randf_range(2.0, 12.0)
+	
+	print("🎲 Randomizing: ", random_file, " | Style: ", %TransitionTypeButton.get_item_text(%TransitionTypeButton.selected))
+	
+	# 5. Execute the Morph
+	_on_preset_button_pressed(random_file)
