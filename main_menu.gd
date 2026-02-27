@@ -477,14 +477,27 @@ func create_preset_from_current_settings() -> ShaderPreset:
 	var params = RenderingServer.get_shader_parameter_list(mat.shader.get_rid())
 	
 	for p in params:
-		# Skip the internal stuff we don't want to save
+		# --- STAGE 1: THE ORIGINAL FILTERS ---
+		# Skip internal Godot stuff and the manual timer
 		if p.name.begins_with("shader_parameter/") or p.name == "manual_time":
 			continue
 			
 		var current_val = mat.get_shader_parameter(p.name)
-		if current_val is Quaternion:
-			current_val = current_val.normalized() # This prevents the "90.0" explosion
+		
+		# --- STAGE 2: THE PURITY FILTER ---
 		if current_val != null:
+			# Fix the "Quaternion Explosion" (Normalization)
+			if current_val is Quaternion:
+				# .normalized() ensures the 4D rotation is a "unit" (length of 1.0)
+				# This prevents the transition jitter and the "90, 25, 28" errors.
+				current_val = current_val.normalized()
+			
+			# Safety check for Floats to prevent "NaN" (Not a Number) or "Inf" (Infinity)
+			elif current_val is float:
+				if is_nan(current_val) or is_inf(current_val):
+					current_val = 0.0
+			
+			# --- STAGE 3: SAVE TO PRESET ---
 			new_preset.set_param(p.name, current_val)
 			
 	return new_preset
@@ -571,6 +584,9 @@ func _on_preset_button_pressed(file_name: String):
 
 	for p_name in preset.parameters.keys():
 		var end_val = preset.get_param(p_name)
+				# --- THE LOADING PURITY FILTER ---
+		if end_val is Quaternion:
+			end_val = end_val.normalized() 
 		
 		# --- STAGE 1: THE INSTANT SNAP BLOCK ---
 		# Place this first to catch "illegal" transition values
@@ -605,7 +621,10 @@ func _update_transition_step(weight: float, starts: Dictionary, ends: Dictionary
 		
 		# TYPE-SPECIFIC INTERPOLATION
 		if start is Quaternion:
-			current_val = start.normalized().slerp(end.normalized(), weight) # Essential for smooth 4D rotation
+			# Safety: normalize both sides before slerping
+			var clean_start = start.normalized()
+			var clean_end = end.normalized()
+			current_val = clean_start.slerp(clean_end, weight)
 		elif start is Color or start is Vector4 or start is Vector3:
 			current_val = start.lerp(end, weight)
 		elif start is float or start is int:
@@ -625,27 +644,25 @@ func _sync_ui_to_param(p_name: String, val):
 		if not ctrl.has_method("get_param_name"): continue
 		var ctrl_name = ctrl.get_param_name()
 		
-		# --- THE SMOOTHNESS FIX ---
-		# We set 'step' to 0 temporarily so the slider can move 
-		# smoothly to any decimal during the 10s morph.
 		var slider = ctrl.slider
 		var original_step = slider.step
-		slider.step = 0 # 0 means "unlimited precision" in Godot
 		
-		# Handle standard float sliders
+		# 1. Temporarily unlock precision for the morph
+		slider.step = 0 
+		
+		# 2. Update values (as you already have)
 		if ctrl_name == p_name:
-			# Only update if the value is actually different to save CPU
 			if not is_equal_approx(slider.value, float(val)):
 				slider.value = val
-		
-		# Handle 4D Axis sliders (e.g. q_rot.x)
 		elif ctrl_name.begins_with(p_name + "."):
 			var axis = ctrl_name.split(".")[1]
 			if val is Vector4 or val is Quaternion:
 				slider.value = val[axis]
-				
-		# Restore the step after the morph ends (Optional)
-		# Or just leave it at 0 during the tween and reset it once the tween finishes.
+		
+		# 3. USE THE VARIABLE: Re-apply the snapping logic
+		# This ensures that once the tween sets the value, 
+		# the slider goes back to its "proper" behavior for the user.
+		slider.step = original_step
 
 func _on_transition_speed_changed(value):
 	transition_time = value
