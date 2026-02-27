@@ -47,10 +47,10 @@ uniform float mirror_4way : hint_range(0.0, 1.0, 1.0) = 0.0;
 uniform float ray_angle : hint_range(0.0, 6.28, 0.1) = 0.0;
 
 // DESC: Precision of the ray. Higher = longer rays, more GPU usage.
-uniform float max_steps : hint_range(10.0, 150.0, 1.0) = 64.0;
+uniform float max_steps : hint_range(2.0, 150.0, 1.0) = 64.0;
 
 // DESC: Distance each ray travels per step. Controls ray reach.
-uniform float step_length : hint_range(0.001, 0.1, 0.001) = 0.01;
+uniform float step_length : hint_range(0.001, 0.03, 0.001) = 0.01;
 
 // DESC: Master brightness of the volumetric glow.
 uniform float ray_intensity : hint_range(0.0, 2.0, 0.1) = 0.0;
@@ -73,12 +73,19 @@ uniform float ray_spread : hint_range(0.1, 10.0, 0.1) = 2.0;
 // DESC: Edge sharpness. 1.0 is sharp, 10.0 is misty/diffuse.
 uniform float ray_softness : hint_range(1.0, 10.0, 0.1) = 3.0;
 
+// DESC: How much the previous "frame" lingers. 0.0 = Crisp, 1.0 = Heavy Trails.
+uniform float feedback_amount : hint_range(0.0, 1.0, 0.01) = 0.0;
+
+// DESC: The direction the "ghosts" drift.
+uniform float feedback_drift : hint_range(-0.1, 0.1, 0.001) = 0.0;
+
+
 // DESC: BENDS THE IMAGE IN A 4-D SORTA WAY
 uniform float hyperbolic_bend : hint_range(0.01, 3.0, 0.001) = 0.10;
 
 
-// DESC: QUATERNIONS?
-uniform vec4 q_rot = vec4(0.0, 0.0, 0.0, 1.0); // x, y, z, w (1.0 is no rotation)     // FIRST QUATERNION BASED SHADERS
+// DESC: QUATERNION AXIS
+uniform vec4 q_rot = vec4(0.0, 0.0, 0.0, 1.0);
 // DESC : QUATERNION UV TUMBLER
 uniform float tumble_strength : hint_range(0.0, 1.0) = 0.5;
 // DESC : Corrupt the "purity" of the math, LOL 
@@ -184,11 +191,14 @@ if (hex_scale > 1.1) {
     vec2 g_uv = dot(a_hex, a_hex) < dot(b_hex, b_hex) ? a_hex : b_hex;
     
     // Only rotate if the user wants individual tile spin
-    if (hex_rot_speed > 0.01) {
-        float rot_a = manual_time * tau * floor(hex_rot_speed); 
-        float c_h = cos(rot_a); float s_h = sin(rot_a);
-        g_uv = vec2(g_uv.x * c_h - g_uv.y * s_h, g_uv.x * s_h + g_uv.y * c_h);
-    }
+if (hex_rot_speed > 0.01) {
+    // --- THE FIX: Use mix and sync_to_loop ---
+    float h_speed = mix(hex_rot_speed, floor(hex_rot_speed), sync_to_loop);
+    float rot_a = manual_time * tau * h_speed; 
+    
+    float c_h = cos(rot_a); float s_h = sin(rot_a);
+    g_uv = vec2(g_uv.x * c_h - g_uv.y * s_h, g_uv.x * s_h + g_uv.y * c_h);
+}
     
     uv = g_uv / hex_scale; 
 }
@@ -316,7 +326,7 @@ if (ray_intensity > 0.01) {
         float spiral = ray_angle + (d_center * hyperbolic_bend * 2.0);
         vec2 bent_dir = vec2(cos(spiral), sin(spiral));
         
-        current_pos += bent_dir * step_length; 
+		current_pos += bent_dir * (step_length * (1.0 - hit_dist * 0.5)); 
         
         // Use fract() to ensure we stay within the texture bounds
         float sample_a = texture(TEXTURE, fract(current_pos)).a;
@@ -345,6 +355,31 @@ if (ray_intensity > 0.01) {
         float color_phase = (manual_time * tau * cycle_speed) + (hit_dist * 5.0);
         vec3 rainbow = vec3(sin(color_phase)*0.5+0.5, sin(color_phase+2.0)*0.5+0.5, sin(color_phase+4.0)*0.5+0.5);
         vec3 final_glow_color = mix(ray_color.rgb, rainbow, ray_rainbow_mix);
+
+// --- 3a. FEEDBACK LOOP (GHOSTING) ---
+if (feedback_amount > 0.01) {
+    vec3 feedback_accum = vec3(0.0);
+    float alpha_accum = 0.0;
+    int samples = 4; 
+    
+    for (int i = 1; i <= samples; i++) {
+        // USE THE OFFSET: This creates the "time-travel" look for the ghosts
+        float offset = float(i) * 0.01 * feedback_amount;
+        
+        // Combine the drift with a tiny bit of time-based oscillation
+        vec2 time_drift = vec2(sin(manual_time * tau + offset), cos(manual_time * tau + offset)) * offset;
+        vec2 ghost_uv = fract(wrapped_uv + (feedback_drift * float(i)) + time_drift);
+        
+        vec4 ghost_sample = texture(TEXTURE, ghost_uv);
+        
+        float fade = pow(feedback_amount, float(i));
+        feedback_accum += ghost_sample.rgb * fade;
+        alpha_accum += ghost_sample.a * fade;
+    }
+    
+    tex.rgb = mix(tex.rgb, tex.rgb + feedback_accum, feedback_amount);
+    tex.a = max(tex.a, alpha_accum * feedback_amount);
+}
 
         // 4. APPLY TO IMAGE
         tex.rgb += final_glow_color * final_intensity; 
