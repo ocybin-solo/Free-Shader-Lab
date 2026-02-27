@@ -411,8 +411,11 @@ func export_animated_strip(path: String, frame_count: int):
 	# --- STITCHING ---
 	var sheet = Image.create(w * cols, h * rows, false, Image.FORMAT_RGBA8)
 	for i in range(frames.size()):
-		var r = i / cols
-		var c = i % cols
+		# Use int() or the floor division style to tell Godot: 
+		# "I know what I'm doing with these integers!"
+		@warning_ignore("integer_division")
+		var r: int = i / cols 
+		var c: int = i % cols
 		var dest_point = Vector2i(c * w, r * h)
 		sheet.blit_rect(frames[i], Rect2i(0, 0, w, h), dest_point)
 	
@@ -650,24 +653,25 @@ func _update_transition_step(weight: float, starts: Dictionary, ends: Dictionary
 		var end = ends[p_name]
 		var current_val
 		
-		# TYPE-SPECIFIC INTERPOLATION
+		# 1. Interpolate
 		if start is Quaternion:
-			# Safety: normalize both sides before slerping
-			var clean_start = start.normalized()
-			var clean_end = end.normalized()
-			current_val = clean_start.slerp(clean_end, weight)
-		elif start is Color or start is Vector4 or start is Vector3:
+			current_val = start.normalized().slerp(end.normalized(), weight)
+		elif start is Color or start is Vector4:
 			current_val = start.lerp(end, weight)
-		elif start is float or start is int:
-			current_val = lerp(start, float(end), weight)
 		else:
-			current_val = end # Fallback for non-interpolatable types
+			current_val = lerp(start, end, weight)
+		
+		# 2. THE STABILITY CLAMPS (Preventing the "Manic" visuals)
+		if p_name == "step_length":
+			current_val = clamp(current_val, 0.001, 0.05)
+		elif p_name == "max_steps":
+			current_val = clamp(current_val, 1.0, 150.0)
+		elif p_name in ["mask_radius", "fold_zoom", "ray_intensity"]:
+			# These MUST be positive, especially with Elastic/Back curves
+			current_val = max(0.0, current_val)
 			
 		mat.set_shader_parameter(p_name, current_val)
-		
-		# Sync the UI sliders (only every 3rd frame to save CPU overhead)
-		if Engine.get_frames_drawn() % 3 == 0:
-			_sync_ui_to_param(p_name, current_val)
+		_sync_ui_to_param(p_name, current_val)
 
 # --- HELPER 2: THE UI SYNC ---
 func _sync_ui_to_param(p_name: String, val):
@@ -677,22 +681,28 @@ func _sync_ui_to_param(p_name: String, val):
 		
 		var slider = ctrl.slider
 		var original_step = slider.step
-		
-		# 1. Temporarily unlock precision for the morph
 		slider.step = 0 
 		
-		# 2. Update values (as you already have)
-		if ctrl_name == p_name:
+		# --- THE CRASH FIX ---
+		# Case A: Standard float sliders (e.g. 'swirl_strength')
+		if ctrl_name == p_name and (val is float or val is int):
 			if not is_equal_approx(slider.value, float(val)):
-				slider.value = val
+				slider.value = float(val)
+		
+		# Case B: 4D Axis sliders (e.g. 'q_rot.x')
 		elif ctrl_name.begins_with(p_name + "."):
-			var axis = ctrl_name.split(".")[1]
+			var parts = ctrl_name.split(".")
+			var axis = parts[1] # "x", "y", "z", or "w"
+			
+			# Check if 'val' is actually a 4D type before accessing [axis]
 			if val is Vector4 or val is Quaternion:
 				slider.value = val[axis]
 		
-		# 3. USE THE VARIABLE: Re-apply the snapping logic
-		# This ensures that once the tween sets the value, 
-		# the slider goes back to its "proper" behavior for the user.
+		# Case C: Color Pickers (Don't try to float() these!)
+		elif p_name == "mod_color" and ctrl_name == "mod_color" and val is Color:
+			# If your control has a color picker, update it here
+			pass 
+
 		slider.step = original_step
 
 func _on_transition_speed_changed(value):
@@ -716,38 +726,30 @@ func _delete_preset(file_name: String):
 		print("4D Archive: Deleted ", file_name)
 		refresh_preset_list() # Re-scan the folder to update the UI
 
-func trigger_random_morph():
-	# 1. Get the list of saved presets
+func _on_random_morph_button_pressed():
 	var path = "user://presets/"
-	if not DirAccess.dir_exists_absolute(path): return
-	
 	var files = []
 	var dir = DirAccess.open(path)
-	dir.list_dir_begin()
+	if not dir: return
 	
+	dir.list_dir_begin()
 	var file_name = dir.get_next()
 	while file_name != "":
-		if not dir.current_is_dir() and file_name.ends_with(".tres"):
-			files.append(file_name)
+		if file_name.ends_with(".tres"): files.append(file_name)
 		file_name = dir.get_next()
 	
-	if files.size() == 0:
-		print("VFX Error: No presets found to randomize!")
-		return
+	if files.size() == 0: return
 
-	# 2. Pick a random Preset from your library
-	var random_file = files[randi() % files.size()]
+	# 1. Choose a random destination
+	var random_preset = files[randi() % files.size()]
 	
-	# 3. Randomize the Transition "Personality"
-	# We have 5 Easings (0-4) and 3 Snap Timings (0-2)
-	%TransitionTypeButton.selected = randi() % 5
-	%SnapTimingButton.selected = randi() % 3
+	# 2. Randomize the "Vibe"
+	%TransitionTypeButton.selected = randi() % 5 # Sine, Expo, Elastic, etc.
+	%SnapTimingButton.selected = randi() % 3    # Start, Mid, End
 	
-	# 4. Randomize the Morph Speed (Optional, but fun!)
-	# Pick a transition time between 2.0 and 12.0 seconds
-	transition_time = randf_range(2.0, 12.0)
+	# 3. Randomize the duration (Between 3s and 12s)
+	# This ensures your 'transition_time' variable is updated before the morph starts
+	transition_time = randf_range(10.0, 20.0)
 	
-	print("🎲 Randomizing: ", random_file, " | Style: ", %TransitionTypeButton.get_item_text(%TransitionTypeButton.selected))
-	
-	# 5. Execute the Morph
-	_on_preset_button_pressed(random_file)
+	# 4. TRIGGER THE MAGIC
+	_on_preset_button_pressed(random_preset)
