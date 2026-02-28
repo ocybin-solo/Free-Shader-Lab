@@ -21,10 +21,8 @@ extends Control
 @onready var fps_label = $"../../CanvasLayer2/VBoxContainer/FPSLabel"
 @onready var perf_label = $MarginContainer/HBoxContainer/LeftPanel/MarginContainer/VBoxContainer/PerfLabel
 
-@onready var VortexEarNode = %VortexEar
-# If you used the '%' Unique Name trick:
 
-#@onready var my_sphere = %MeshInstance3D #calling in ready instead
+
 
 # -- Animation preview stuff 
 var preview_frame_index : int = 0
@@ -36,7 +34,7 @@ var captured_frames: Array = [] # This holds the actual Image objects
 @export var frame_delay : float = 0.1 
 var original_shader_defaults: Dictionary = {}
 
-var is_in_void = false # are we currently in the 3d world?
+
 
 
 
@@ -50,37 +48,13 @@ var is_exporting = false
 var preview_elapsed_time: float = 0.0
 var transition_time: float = 1.5 # for transition between presets
 
-# --- THE HYPERSPACE MAP ---
-# These paths look at the very top of the game tree
-@onready var world_3d = get_node("/root/Main/Node3D") 
-@onready var camera_3d = get_node("/root/Main/Node3D/Camera3D")
-#@onready var my_sphere = get_node("/root/Main/Node3D/MeshInstance3D")
+
 @onready var ui_overlay = self 
 
 func _ready():
-	# 1. WAIT: Give the 1050 Ti a moment to breathe
-	await get_tree().process_frame
 
-	# 2. THE NINJA SNIFF: Look at the top-level scene
-	var scene_root = get_tree().current_scene
-	
-	# We search for the Mesh and the Viewport anywhere in the 'Main' tree
-	var my_sphere = scene_root.find_child("MeshInstance3D", true, false)
-	var my_viewport = scene_root.find_child("SubViewport", true, false)
-	
-	if my_sphere and my_viewport:
-		var mat_3d = my_sphere.get_surface_override_material(0) as ShaderMaterial
-		if mat_3d:
-			var vp_tex = ViewportTexture.new()
-			# This creates the live bridge
-			vp_tex.viewport_path = my_viewport.get_path()
-			mat_3d.set_shader_parameter("main_texture", vp_tex)
-			print("Sensei Success: The Bridge is open. Void surfing enabled.")
-	else:
-		# If we hit this, it means the names in the Scene Tree don't match!
-		printerr("Ground Control: Can't find 'MeshInstance3D' or 'SubViewport'!")
 
-	# --- STAGE 2: UI & MENUS ---
+	# --- STAGE 1: UI & MENUS ---
 	create_dynamic_controls()
 
 	# Photosensitivity Warning Tween
@@ -106,14 +80,9 @@ func _ready():
 	snap_btn.add_item("Snap at Mid-Point", 1)
 	snap_btn.add_item("Snap at End", 2)
 	
-	# STAGE 3: Audio Setup
-	if has_node("VortexEar"):
-		$VortexEar.dual_pulse.connect(_on_vortex_ear_dual_pulse)
+
 	
-	if Input.is_action_just_pressed("3d_toggle"):
-		ui_overlay.visible = true
-		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE 
-	
+
 	
 func _process(delta: float) -> void:
 		# Update the monitor every frame
@@ -180,7 +149,7 @@ func _process(delta: float) -> void:
 					# ORGANIC MODE: Continuous climb for smooth slow-motion
 					mat.set_shader_parameter("manual_time", preview_elapsed_time)
 					
- # Should we check to see if we are in a menu or 3d world here?
+ #
 			
 			
 func _on_quit_button_pressed():
@@ -384,11 +353,8 @@ func parse_shader_descriptions(path):
 	return dict
 
 func _input(event):
-		# IF WE ARE IN THE VOID, STOP 2D INPUTS IMMEDIATELY
-	if is_in_void:
-		if event.is_action_pressed("ui_cancel"):
-			_on_3d_toggle_pressed() # Jump back to menu
-		return # Exit early so 2D logic below doesn't run!
+
+
 	if not viewport_container.get_global_rect().has_point(get_global_mouse_position()):
 		return
 	if event.is_action_pressed("zoom_in"): zoom_camera(zoom_speed)
@@ -396,17 +362,7 @@ func _input(event):
 	if event.is_action("pan"): is_panning = event.pressed
 	if event is InputEventMouseMotion and is_panning:
 		camera.position -= event.relative / camera.zoom.x
-# 1. THE 'H.' CONNECTION: Toggle between 2D and 3D
-	if event.is_action_pressed("3d_toggle"):
-		_on_3d_toggle_pressed()
-		print("Sensei: The 'H.' connection is open. Entering the Void.")
-		return # Stop other inputs from firing in the same frame
-
-	# 2. VOID PROTECTION: Don't zoom or pan the 2D UI if we are flying in 3D
-	if is_in_void:
-		return
-
-
+#
 	
 
 
@@ -870,39 +826,7 @@ func _check_gpu_safety():
 			print("VRAM Safety Tripped: Feedback disabled to prevent 1050 Ti crash.")
 			
 			
-			## AUDIYODELOGIC
-			
-func _on_vortex_ear_dual_pulse(guitar_energy: float, music_energy: float):
-	var mat = display_sprite.material as ShaderMaterial
-	if not mat: return
-	mat.set_shader_parameter("vortex_morph", guitar_energy * 100.0)
-	mat.set_shader_parameter("ray_intensity", music_energy * 100.0)
+		
+
 
 	
-func _on_enter_void_pressed():
-	# 1. Hide the messy sliders
-	ui_overlay.visible = false
-	
-	# 2. Enable the 6DoF Camera
-	world_3d.get_node("Camera3D").set_process(true)
-	
-	# 3. Capture the mouse for that 'True Pilot' feel
-	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
-	
-func _on_3d_toggle_pressed():
-	is_in_void = !is_in_void
-	
-	if is_in_void:
-		# 1. CAPTURE the mouse so it doesn't click buttons while you fly
-		get_viewport().gui_release_focus()
-		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
-
-		# 2. ACTIVATE the 3D Camera
-		if camera_3d:
-			camera_3d.make_current()
-			camera_3d.set_process(true)
-	else:
-		# 3. RELEASE to use the sliders again
-		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
-		if camera_3d:
-			camera_3d.set_process(false)

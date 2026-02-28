@@ -5,6 +5,9 @@ uniform vec4 mod_color : source_color = vec4(1.0);
 // DESC: ON = Perfect Loops for Exports. OFF = Smooth movement for live play.
 uniform float sync_to_loop : hint_range(0.0, 1.0, 1.0) = 0.0;
 
+// DESC: Full circle in Radians (0 to 2PI)
+uniform float u_rotation : hint_range(0.0, 6.28318); 
+
 // DESC: The image won't draw outside the size of this circle
 uniform float mask_radius : hint_range(0.01, 1.0, 0.01) = 1.0;
 // --- 1. COORDINATE WARPING (UV) ---
@@ -75,7 +78,8 @@ uniform float feedback_amount : hint_range(0.0, 0.5, 0.01) = 0.0;
 
 // DESC: The direction the "ghosts" drift.
 uniform float feedback_drift : hint_range(-0.05, 0.05, 0.001) = 0.0;
-
+ // DESC: The image will appear to stretch over a sphere
+uniform float poincare_warp : hint_range(0.0, 1.0, 0.01) = 0.0; 
 
 // DESC: BENDS THE IMAGE IN A 4-D SORTA WAY
 uniform float hyperbolic_bend : hint_range(0.01, 3.0, 0.001) = 0.10;
@@ -146,11 +150,17 @@ float rand(vec2 co) {
 
 
 void fragment() {
-	// --- 1. INITIAL SETUP ---
-	// Removed 'center' variable to clear the warning
-	vec2 uv = (UV - 0.5) * fold_zoom;
-	float tau = 6.28318530718;
-	
+    // 1. Center the coordinates (0.0 is now dead center)
+    vec2 uv = (UV - 0.5);
+	float tau = 6.28318530718; // Define Tau (2 * PI)
+    // 2. Apply Rotation (Rotating around the 0.0 center)
+    float s = sin(u_rotation);
+    float c = cos(u_rotation);
+    mat2 rot = mat2(vec2(c, -s), vec2(s, c));
+    uv = rot * uv;
+
+    // 3. Apply your Zoom
+    uv *= fold_zoom;
 
 
 	// --- 2. UV DISTORTIONS ---
@@ -250,19 +260,15 @@ if (swirl_strength > 0.01) {
     uv = vec2(uv.x * c - uv.y * s, uv.x * s + uv.y * c);
 }
 
-// --- POINCARÉ DISK DISTORTION ---
-// This warps the actual image geometry
-//if (abs(hyperbolic_bend) > 0.1) {
- //   vec2 p = uv; // centered UVs
- //   float r = length(p);
-    // The standard Poincaré mapping: p' = p / (1 - r^2)            // this code was replaced by more interesting mobius block below..
-    // We'll use your bend slider to control the intensity                 // that is, the hyperbolic inversion logic. 
- //   float warp = 1.0 / (1.0 - (r * r * (hyperbolic_bend * 0.1)));
- //   uv *= warp;
-//}
-
-
-
+// --- STYLE A: POINCARÉ GEOMETRIC WARP (STRENGTHENED) ---
+if (poincare_warp > 0.01) {
+    float r = length(uv);
+    // We use poincare_warp to drive the intensity
+    // We cap the denominator at 0.001 to prevent 'White Out' crashes
+    float strength = clamp(poincare_warp * 1.5, 0.0, 0.99); 
+    float warp = 1.0 / max(0.001, 1.0 - (pow(r, 1.5) * strength));
+    uv *= warp;
+}
 
 // --- HYPERBOLIC INVERSION (The 'Infinite Mirror' look) ---
 if (abs(hyperbolic_bend) > 0.1) {

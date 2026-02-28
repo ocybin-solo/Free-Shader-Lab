@@ -1,9 +1,0 @@
-[gd_scene format=3 uid="uid://dk8get7ok5h7p"]
-
-[sub_resource type="AudioStreamMicrophone" id="AudioStreamMicrophone_e0c2f"]
-
-[node name="QuantumBoomBox" type="Node3D" unique_id=377713619]
-
-[node name="AudioStreamPlayer3D" type="AudioStreamPlayer3D" parent="." unique_id=1539564286]
-stream = SubResource("AudioStreamMicrophone_e0c2f")
-bus = &"GuitarInput"

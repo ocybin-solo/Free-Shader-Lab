@@ -3,8 +3,6 @@
 [ext_resource type="Script" uid="uid://clg7tkg4kcqh1" path="res://main_menu.gd" id="1_uu6xs"]
 [ext_resource type="Shader" uid="uid://c4afwoidbse14" path="res://MasterSharder.gdshader" id="2_r0du0"]
 [ext_resource type="Texture2D" uid="uid://b1ey4qsdif3dr" path="res://SCICON.png" id="3_r0du0"]
-[ext_resource type="PackedScene" uid="uid://brwrfolgjrafb" path="res://Vortexear.tscn" id="4_cm0pq"]
-[ext_resource type="PackedScene" uid="uid://btjen3nq0e4bx" path="res://World3D.tscn" id="5_fos0i"]
 
 [sub_resource type="Theme" id="Theme_r0du0"]
 
@@ -12,6 +10,7 @@
 shader = ExtResource("2_r0du0")
 shader_parameter/mod_color = Color(1, 1, 1, 1)
 shader_parameter/sync_to_loop = 0.0
+shader_parameter/u_rotation = 0.0
 shader_parameter/mask_radius = 1.0
 shader_parameter/mask_stretch = 1.0
 shader_parameter/swirl_strength = 0.0
@@ -35,6 +34,7 @@ shader_parameter/ray_spread = 2.0
 shader_parameter/ray_softness = 3.0
 shader_parameter/feedback_amount = 0.0
 shader_parameter/feedback_drift = 0.0
+shader_parameter/poincare_warp = 0.0
 shader_parameter/hyperbolic_bend = 0.1
 shader_parameter/q_rot = Vector4(0, 0, 0, 1)
 shader_parameter/tumble_strength = 0.5
@@ -374,11 +374,6 @@ min_value = 2.0
 max_value = 60.0
 value = 10.0
 
-[node name="VortexEar" parent="." unique_id=724635658 instance=ExtResource("4_cm0pq")]
-unique_name_in_owner = true
-
-[node name="Node3D" parent="." unique_id=730218681 instance=ExtResource("5_fos0i")]
-
 [connection signal="value_changed" from="CanvasLayer/MainMenu/MarginContainer/HBoxContainer/LeftPanel/MarginContainer/VBoxContainer/PresetContainer/MarginContainer/VBoxContainer/HSlider" to="CanvasLayer/MainMenu" method="_on_transition_speed_changed"]
 [connection signal="pressed" from="CanvasLayer/MainMenu/MarginContainer/HBoxContainer/LeftPanel/MarginContainer/VBoxContainer/PresetContainer/MarginContainer/VBoxContainer/RandomizerButton" to="CanvasLayer/MainMenu" method="_on_random_morph_button_pressed"]
 [connection signal="pressed" from="CanvasLayer/MainMenu/MarginContainer/HBoxContainer/LeftPanel/MarginContainer/VBoxContainer/PresetContainer/MarginContainer/VBoxContainer/SavePresetButton" to="CanvasLayer/MainMenu" method="_on_save_preset_button_pressed"]
@@ -392,4 +387,3 @@ unique_name_in_owner = true
 [connection signal="pressed" from="CanvasLayer/MainMenu/MarginContainer/HBoxContainer/MidPanel/MarginContainer/VBoxContainer/HBoxContainer/ExportLogicButton" to="CanvasLayer/MainMenu" method="_on_export_logic_button_pressed"]
 [connection signal="pressed" from="CanvasLayer/MainMenu/MarginContainer/HBoxContainer/MidPanel/MarginContainer/VBoxContainer/HBoxContainer/ResetAllButton" to="CanvasLayer/MainMenu" method="_on_reset_all_button_pressed"]
 [connection signal="pressed" from="CanvasLayer2/VBoxContainer/StopPreviewButton" to="CanvasLayer/MainMenu" method="_on_stop_button_pressed"]
-[connection signal="dual_pulse" from="VortexEar" to="CanvasLayer/MainMenu" method="_on_vortex_ear_dual_pulse"]
