@@ -55,7 +55,7 @@ var transition_time: float = 1.5 # for transition between presets
 @onready var world_3d = get_node("/root/Main/Node3D") 
 @onready var camera_3d = get_node("/root/Main/Node3D/Camera3D")
 #@onready var my_sphere = get_node("/root/Main/Node3D/MeshInstance3D")
-var ui_overlay
+@onready var ui_overlay = self 
 
 func _ready():
 	# 1. WAIT: Give the 1050 Ti a moment to breathe
