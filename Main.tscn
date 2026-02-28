@@ -69,6 +69,7 @@ color = Color(0.3403393, 0.34033936, 0.34033924, 1)
 [node name="CanvasLayer" type="CanvasLayer" parent="." unique_id=159168505]
 
 [node name="MainMenu" type="HBoxContainer" parent="CanvasLayer" unique_id=1344133554]
+self_modulate = Color(1, 1, 1, 0.5176471)
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
@@ -270,6 +271,7 @@ theme_override_constants/margin_bottom = 20
 layout_mode = 2
 
 [node name="SubViewportContainer" type="SubViewportContainer" parent="CanvasLayer/MainMenu/MarginContainer/HBoxContainer/MidPanel/MarginContainer/VBoxContainer" unique_id=1478151198]
+self_modulate = Color(1, 1, 1, 0.49019608)
 layout_mode = 2
 size_flags_vertical = 3
 mouse_filter = 2
@@ -277,7 +279,6 @@ stretch = true
 mouse_target = true
 
 [node name="SubViewport" type="SubViewport" parent="CanvasLayer/MainMenu/MarginContainer/HBoxContainer/MidPanel/MarginContainer/VBoxContainer/SubViewportContainer" unique_id=438583877]
-transparent_bg = true
 handle_input_locally = false
 size = Vector2i(671, 526)
 render_target_update_mode = 4

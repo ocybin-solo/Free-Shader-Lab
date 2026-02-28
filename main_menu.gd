@@ -890,20 +890,19 @@ func _on_enter_void_pressed():
 	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 	
 func _on_3d_toggle_pressed():
-	is_in_void = !is_in_void # Flip the 'H.' state
-	
-	# 1. Hide the Sliders
-	ui_overlay.visible = !is_in_void
+	is_in_void = !is_in_void
 	
 	if is_in_void:
-		# 2. CAPTURE the Mouse (For 6DoF flight)
+		# 1. CAPTURE the mouse so it doesn't click buttons while you fly
+		get_viewport().gui_release_focus()
 		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
-		# 3. WAKE the Pilot (The Camera3D script)
+
+		# 2. ACTIVATE the 3D Camera
 		if camera_3d:
+			camera_3d.make_current()
 			camera_3d.set_process(true)
-			camera_3d.make_current() # FORCE the 3D view
 	else:
-		# 4. RELEASE the Mouse (For UI clicking)
+		# 3. RELEASE to use the sliders again
 		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 		if camera_3d:
 			camera_3d.set_process(false)
