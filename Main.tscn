@@ -123,11 +123,19 @@ theme_override_constants/margin_bottom = 10
 clip_contents = true
 layout_mode = 2
 
-[node name="HSlider" type="HSlider" parent="CanvasLayer/MainMenu/MarginContainer/HBoxContainer/LeftPanel/MarginContainer/VBoxContainer/PresetContainer/MarginContainer/VBoxContainer" unique_id=899212549]
+[node name="HBoxContainer" type="HBoxContainer" parent="CanvasLayer/MainMenu/MarginContainer/HBoxContainer/LeftPanel/MarginContainer/VBoxContainer/PresetContainer/MarginContainer/VBoxContainer" unique_id=557713662]
 layout_mode = 2
+
+[node name="Label" type="Label" parent="CanvasLayer/MainMenu/MarginContainer/HBoxContainer/LeftPanel/MarginContainer/VBoxContainer/PresetContainer/MarginContainer/VBoxContainer/HBoxContainer" unique_id=1433635556]
+layout_mode = 2
+text = "10.0s"
+
+[node name="HSlider" type="HSlider" parent="CanvasLayer/MainMenu/MarginContainer/HBoxContainer/LeftPanel/MarginContainer/VBoxContainer/PresetContainer/MarginContainer/VBoxContainer/HBoxContainer" unique_id=899212549]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 1
 tooltip_text = "Transition Speed"
-max_value = 60.0
-step = 0.1
+max_value = 30.0
 value = 10.0
 
 [node name="TransitionTypeButton" type="OptionButton" parent="CanvasLayer/MainMenu/MarginContainer/HBoxContainer/LeftPanel/MarginContainer/VBoxContainer/PresetContainer/MarginContainer/VBoxContainer" unique_id=1213945718]
@@ -202,7 +210,7 @@ text = "Import Image"
 [node name="B_Save" type="Button" parent="CanvasLayer/MainMenu/MarginContainer/HBoxContainer/LeftPanel/MarginContainer/VBoxContainer" unique_id=1939651797]
 layout_mode = 2
 theme_override_font_sizes/font_size = 10
-text = "Export Image"
+text = "Save Single Image"
 
 [node name="AnimToggle" type="CheckButton" parent="CanvasLayer/MainMenu/MarginContainer/HBoxContainer/LeftPanel/MarginContainer/VBoxContainer" unique_id=1654624165]
 layout_mode = 2
@@ -374,7 +382,8 @@ min_value = 2.0
 max_value = 60.0
 value = 10.0
 
-[connection signal="value_changed" from="CanvasLayer/MainMenu/MarginContainer/HBoxContainer/LeftPanel/MarginContainer/VBoxContainer/PresetContainer/MarginContainer/VBoxContainer/HSlider" to="CanvasLayer/MainMenu" method="_on_transition_speed_changed"]
+[connection signal="value_changed" from="CanvasLayer/MainMenu/MarginContainer/HBoxContainer/LeftPanel/MarginContainer/VBoxContainer/PresetContainer/MarginContainer/VBoxContainer/HBoxContainer/HSlider" to="CanvasLayer/MainMenu" method="_on_transition_speed_changed"]
+[connection signal="value_changed" from="CanvasLayer/MainMenu/MarginContainer/HBoxContainer/LeftPanel/MarginContainer/VBoxContainer/PresetContainer/MarginContainer/VBoxContainer/HBoxContainer/HSlider" to="CanvasLayer/MainMenu" method="_on_transition_slider_changed"]
 [connection signal="pressed" from="CanvasLayer/MainMenu/MarginContainer/HBoxContainer/LeftPanel/MarginContainer/VBoxContainer/PresetContainer/MarginContainer/VBoxContainer/RandomizerButton" to="CanvasLayer/MainMenu" method="_on_random_morph_button_pressed"]
 [connection signal="pressed" from="CanvasLayer/MainMenu/MarginContainer/HBoxContainer/LeftPanel/MarginContainer/VBoxContainer/PresetContainer/MarginContainer/VBoxContainer/SavePresetButton" to="CanvasLayer/MainMenu" method="_on_save_preset_button_pressed"]
 [connection signal="color_changed" from="CanvasLayer/MainMenu/MarginContainer/HBoxContainer/LeftPanel/MarginContainer/VBoxContainer/ColorPickerButton" to="CanvasLayer/MainMenu" method="_on_color_picker_button_color_changed"]
@@ -382,6 +391,7 @@ value = 10.0
 [connection signal="item_selected" from="CanvasLayer/MainMenu/MarginContainer/HBoxContainer/LeftPanel/MarginContainer/VBoxContainer/B_Filters" to="CanvasLayer/MainMenu" method="_on_filter_selected"]
 [connection signal="pressed" from="CanvasLayer/MainMenu/MarginContainer/HBoxContainer/LeftPanel/MarginContainer/VBoxContainer/B_Import" to="CanvasLayer/MainMenu" method="_on_open_button_pressed"]
 [connection signal="pressed" from="CanvasLayer/MainMenu/MarginContainer/HBoxContainer/LeftPanel/MarginContainer/VBoxContainer/B_Save" to="CanvasLayer/MainMenu" method="_on_save_button_pressed"]
+[connection signal="toggled" from="CanvasLayer/MainMenu/MarginContainer/HBoxContainer/LeftPanel/MarginContainer/VBoxContainer/AnimToggle" to="CanvasLayer/MainMenu" method="_on_spritesheet_toggle_toggled"]
 [connection signal="pressed" from="CanvasLayer/MainMenu/MarginContainer/HBoxContainer/LeftPanel/MarginContainer/VBoxContainer/quitbutton" to="CanvasLayer/MainMenu" method="_on_quit_button_pressed"]
 [connection signal="pressed" from="CanvasLayer/MainMenu/MarginContainer/HBoxContainer/MidPanel/MarginContainer/VBoxContainer/HBoxContainer/ResetPosButton" to="CanvasLayer/MainMenu" method="_on_reset_button_pressed"]
 [connection signal="pressed" from="CanvasLayer/MainMenu/MarginContainer/HBoxContainer/MidPanel/MarginContainer/VBoxContainer/HBoxContainer/ExportLogicButton" to="CanvasLayer/MainMenu" method="_on_export_logic_button_pressed"]

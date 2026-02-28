@@ -5,7 +5,7 @@ uniform vec4 mod_color : source_color = vec4(1.0);
 // DESC: ON = Perfect Loops for Exports. OFF = Smooth movement for live play.
 uniform float sync_to_loop : hint_range(0.0, 1.0, 1.0) = 0.0;
 
-// DESC: Full circle in Radians (0 to 2PI)
+// DESC: Master Rotation. 0 to 6.28 is one full circle (Tau)
 uniform float u_rotation : hint_range(0.0, 6.28318); 
 
 // DESC: The image won't draw outside the size of this circle
@@ -30,7 +30,7 @@ uniform float kaleido_sides : hint_range(1.0, 15.0, 1.0) = 1.0;
 // DESC:  # of geometric folds 
 uniform float fold_number : hint_range(0.0, 8.0, 1.0) = 0.0;
 // DESC: ZOOM IN OR OUT WARPING THE IMAGE 
-uniform float fold_zoom : hint_range(0.0, 6.0, 0.1) = 1.0;
+uniform float fold_zoom : hint_range(0.0, 10.0, 0.1) = 1.0;
 // DESC: Controls rotation speed of the fractal folds. Set to 0.0 for static folds.
 uniform float fold_rot_speed : hint_range(0.0, 5.0, 0.1) = 0.0;
 // DESC: 1.0 = Off, 2.0+ = Grid Tiling. Use whole numbers for perfect loops.
@@ -49,10 +49,10 @@ uniform float ray_angle : hint_range(0.0, 6.28, 0.1) = 0.0;
 // DESC: Precision of the ray. Higher = longer rays, more GPU usage.
 uniform float max_steps : hint_range(2.0, 150.0, 1.0) = 64.0;
 
-// DESC: Distance each ray travels per step. Controls ray reach.
+// DESC: Ray Reach. Higher = Longer light trails, Lower = Sharper glow.
 uniform float step_length : hint_range(0.001, 0.03, 0.001) = 0.01;
 
-// DESC: Master brightness of the volumetric glow.
+// DESC: Volumetric Brightness. Controls the 'Inner Glow' of the image.
 uniform float ray_intensity : hint_range(0.0, 2.0, 0.1) = 0.0;
 
 // DESC: The base color of the light trails.
@@ -73,7 +73,7 @@ uniform float ray_spread : hint_range(0.1, 10.0, 0.1) = 2.0;
 // DESC: Edge sharpness. 1.0 is sharp, 10.0 is misty/diffuse.
 uniform float ray_softness : hint_range(1.0, 10.0, 0.1) = 3.0;
 
-// DESC: How much the previous "frame" lingers. 0.0 = Crisp, 1.0 = Heavy Trails.
+// DESC: Temporal Smear. Creates ghosting trails (Warning: can cause 'burn-in' look at high values).
 uniform float feedback_amount : hint_range(0.0, 0.5, 0.01) = 0.0;
 
 // DESC: The direction the "ghosts" drift.
@@ -81,15 +81,15 @@ uniform float feedback_drift : hint_range(-0.05, 0.05, 0.001) = 0.0;
  // DESC: The image will appear to stretch over a sphere
 uniform float poincare_warp : hint_range(0.0, 1.0, 0.01) = 0.0; 
 
-// DESC: BENDS THE IMAGE IN A 4-D SORTA WAY
+// DESC: Infinite Mirror. Inverts space-time around the center point.
 uniform float hyperbolic_bend : hint_range(0.01, 3.0, 0.001) = 0.10;
 
 
-// DESC: QUATERNION AXIS
+// DESC: 4D Quaternion Rotation. Warps the UV 'Sphere' on 4 axes.
 uniform vec4 q_rot = vec4(0.0, 0.0, 0.0, 1.0);
-// DESC : QUATERNION UV TUMBLER
+// DESC: Kinetic Energy. How much the Quaternion rotation affects the image.
 uniform float tumble_strength : hint_range(0.0, 1.0) = 0.5;
-// DESC : Corrupt the "purity" of the math, LOL 
+// DESC: Entropic Corruption. Intentionally breaks the math for a 'Digital Decay' look.
 uniform float glitch_factor : hint_range(0.0, 1.0) = 0.0;
 // DESC: 0.0 = Liquid Morph, 1.0 = Digital Stepping (effects the glitch factor)
 uniform float glitch_style : hint_range(0.0, 1.0, 0.01) = 0.0;
@@ -100,13 +100,13 @@ uniform float wave_strength : hint_range(0.0, 1.0, 0.01) = 0.0;
 
 
 
-// DESC: Vortex Lattice Density (The # of magnetic flux tubes)
+// DESC: Flux Tube Count. Number of repeating vortex cells in the grid.
 uniform float vortex_density : hint_range(0.0, 50.0, 1.0) = 0.0;
 
-// DESC: Vortex Morph. 0.0 = Static Grid, 1.0 = Liquid Flowing Phase
+// DESC: Molecular Fluidity. 0 = Solid Crystal, 1 = Liquid Flow.
 uniform float vortex_morph : hint_range(0.0, 1.0, 0.01) = 0.0;
 
-// DESC: 4D Vortex State: X/Y=Shift, Z=Phase, W=Hole Size
+// DESC: Vortex Tuning: [X/Y] Grid Shift, [Z] Time Phase, [W] Aperture Size.
 uniform vec4 vortex_state = vec4(0.0, 0.0, 0.0, 0.5);
 
 
@@ -281,29 +281,41 @@ if (abs(hyperbolic_bend) > 0.1) {
 }
 
 
-// --- SUPERCONDUCTOR VORTEX LATTICE ---
-// --- TRANSITION-SAFE VORTEX LATTICE ---
+// --- SUPERCONDUCTOR VORTEX LATTICE (Sensei Calibrated) ---
 if (vortex_density > 0.1) {
-    // 1. LERP-SAFE DENSITY
-    // If transitioning, this avoids 'half-vortices' by blending with alpha
-    float v_alpha = clamp(vortex_density, 0.0, 1.0); 
+    // 1. LERP-SAFE DENSITY & NORMALIZATION
+    // We normalize the 1-100 sliders to 0.0-1.0 range for the math
+    float v_alpha = clamp(vortex_density * 0.1, 0.0, 1.0); 
+    float v_morph_norm = vortex_morph * 0.01; // 45 becomes 0.45
     
-    vec2 v_uv = (uv + vortex_state.xy) * vortex_density;
+    // Normalize X/Y shift from 1-100 to 0.0-1.0
+    vec2 v_shift = vortex_state.xy * 0.01;
+    vec2 v_uv = (uv + v_shift) * vortex_density;
     
-    // 2. THE LIQUID SNAP (Synced to your loop)
-    float v_time = mix(manual_time, floor(manual_time), sync_to_loop);
-    v_uv.x += sin(v_uv.y * 0.5 + v_time * tau) * vortex_morph;
+    // 2. THE LIQUID SNAP (Now with visible bending)
+    float v_phase = vortex_state.z * 0.05; // Make Z more sensitive
+    float v_time = manual_time + v_phase;
     
+    // Apply the liquid flow morph to BOTH axes for a 'swirl'
+    // We multiply by 0.1 to make the bend strong but not 'broken'
+    float bend_strength = vortex_morph * 0.1; 
+    v_uv.x += cos(v_uv.y * 0.8 + v_time) * bend_strength;
+    v_uv.y += sin(v_uv.x * 0.8 + v_time) * bend_strength;
+    
+    // 3. DISTANCE CALCULATION
+    // In fract() space, the max distance from center is 0.5
     float v_dist = length(fract(v_uv) - 0.5);
     
-    // 3. SMOOTH HOLE SIZE
-    // Using smoothstep here allows the 'vortex_state.w' to transition 
-    // without hard pixel jumps.
-    float v_mask = smoothstep(vortex_state.w, vortex_state.w - 0.2, v_dist);
+    // 4. NORMALIZED HOLE SIZE (The 'W' Fix)
+    // We multiply W by 0.005 so that 100 on the slider = 0.5 (the max radius)
+    float normalized_w = vortex_state.w * 0.005;
     
-    // 4. APPLY WITH ALPHA BLEND
-    // This is the key: we multiply the effect by v_alpha so it fades in/out 
-    // during preset transitions instead of 'popping'.
+    // Smoothstep creates the actual 'tubes'. 
+    // If v_dist is less than W, we warp.
+    float v_mask = smoothstep(normalized_w, normalized_w - 0.1, v_dist);
+    
+    // 5. APPLY WITH ALPHA BLEND
+    // This scales the intensity based on your density slider
     uv *= mix(1.0, 1.0 + v_mask, 0.3 * v_alpha);
 }
 

@@ -3,7 +3,7 @@ extends Control
 # --- Node Paths ---
 @onready var camera = $MarginContainer/HBoxContainer/MidPanel/MarginContainer/VBoxContainer/SubViewportContainer/SubViewport/Camera2D
 @onready var viewport_container = $MarginContainer/HBoxContainer/MidPanel/MarginContainer/VBoxContainer/SubViewportContainer
-@onready var sub_viewport 
+@onready var sub_viewport = $MarginContainer/HBoxContainer/MidPanel/MarginContainer/VBoxContainer/SubViewportContainer/SubViewport
 @onready var file_dialog = $MarginContainer/HBoxContainer/LeftPanel/MarginContainer/VBoxContainer/OpenFile
 @onready var display_sprite = $MarginContainer/HBoxContainer/MidPanel/MarginContainer/VBoxContainer/SubViewportContainer/SubViewport/Sprite2D
 @onready var color_picker = $MarginContainer/HBoxContainer/LeftPanel/MarginContainer/VBoxContainer/ColorPickerButton
@@ -22,7 +22,8 @@ extends Control
 @onready var perf_label = $MarginContainer/HBoxContainer/LeftPanel/MarginContainer/VBoxContainer/PerfLabel
 
 
-
+@onready var save_button = $MarginContainer/HBoxContainer/LeftPanel/MarginContainer/VBoxContainer/B_Save
+@onready var transition_label = $MarginContainer/HBoxContainer/LeftPanel/MarginContainer/VBoxContainer/PresetContainer/MarginContainer/VBoxContainer/HBoxContainer/Label
 
 # -- Animation preview stuff 
 var preview_frame_index : int = 0
@@ -387,6 +388,19 @@ func _on_file_dialog_file_selected(path: String):
 			export_animated_strip(path, int(frame_count_input.value))
 		else:
 			save_single_frame(path)
+
+func _on_spritesheet_toggle_toggled(is_on: bool):
+	# Toggle the text on the Save button based on the mode
+	if is_on:
+		save_button.text = "Save Spritesheet"
+		# Remind the user to sync to loop for best results
+
+	else:
+		save_button.text = "Save Single Image"
+
+func _on_transition_slider_changed(value: float):
+	# Update the label next to the slider (e.g., "Duration: 1.5s")
+	transition_label.text = str(value) + "s"
 
 func save_single_frame(path):
 	await RenderingServer.frame_post_draw
