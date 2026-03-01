@@ -28,3 +28,9 @@ Vortex Lab is a high-performance 2D visual synthesizer built in Godot 4.6. It al
 - **Windows:** Download the `.exe` and run. (Ensure the `shaders/` folder is in the same directory).
 - **Linux:** Run the `.x86_64` executable. (Requires Vulkan/OpenGL support).
 - **Mac:** Open the `.zip`, drag the App to Applications. _Note: You may need to "Allow Anyway" in Security settings._
+
+ "Special thanks to the Google Gemini AI for helping me throughout the entire process of creating this app.  I would have been stuck in tutorial help without the assistance."
+
+** If you'd like to support my work, I would love you for that ** 
+You can directly send money to me through Venmo : @boxel is the handle, and my name is Jeffrey Box
+Also, or instead, you can support me through GitHub.  I will setup GitHub Sponsors so that I am connected there, and you can use that system to buy me a cup of coffee.  Thank you very much!
