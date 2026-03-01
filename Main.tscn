@@ -70,12 +70,14 @@ size_flags_horizontal = 3
 size_flags_vertical = 3
 
 [node name="Background" type="ColorRect" parent="." unique_id=1616733207]
+visible = false
 layout_mode = 0
 offset_right = 1151.0
 offset_bottom = 647.0
 color = Color(0.23031491, 0.23031494, 0.23031494, 1)
 
 [node name="CanvasLayer" type="CanvasLayer" parent="." unique_id=159168505]
+follow_viewport_enabled = true
 
 [node name="MainMenu" type="HBoxContainer" parent="CanvasLayer" unique_id=1344133554]
 self_modulate = Color(1, 1, 1, 0.5176471)
