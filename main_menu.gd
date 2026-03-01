@@ -25,6 +25,14 @@ extends Control
 @onready var save_button = $MarginContainer/HBoxContainer/LeftPanel/MarginContainer/VBoxContainer/B_Save
 @onready var transition_label = $MarginContainer/HBoxContainer/LeftPanel/MarginContainer/VBoxContainer/PresetContainer/MarginContainer/VBoxContainer/HBoxContainer/Label
 
+#fullscreen references
+@onready var cinema_layer = $CinemaLayer
+@onready var cinema_container = $CinemaLayer/CinemaContainer
+@onready var main_ui_layout = $MarginContainer # The top-most parent of your panels
+var viewport_node: SubViewport
+var original_parent: SubViewportContainer
+
+
 # -- Animation preview stuff 
 var preview_frame_index : int = 0
 var preview_timer : float = 0.0
@@ -363,7 +371,9 @@ func _input(event):
 	if event.is_action("pan"): is_panning = event.pressed
 	if event is InputEventMouseMotion and is_panning:
 		camera.position -= event.relative / camera.zoom.x
-#
+		
+	if Input.is_action_just_pressed("fullscreen_toggle"):
+		toggle_fullscreen()
 	
 
 
@@ -840,7 +850,29 @@ func _check_gpu_safety():
 			print("VRAM Safety Tripped: Feedback disabled to prevent 1050 Ti crash.")
 			
 			
+func toggle_fullscreen():
+	if not cinema_layer.visible:
+		# --- GOING FULLSCREEN ---
+		$MarginContainer.visible = false 
 		
-
-
+		# 1. Safely remove from WHATEVER parent it currently has
+		var current_parent = sub_viewport.get_parent()
+		if current_parent:
+			current_parent.remove_child(sub_viewport)
+		
+		# 2. Add to the new container
+			cinema_container.add_child(sub_viewport)
+			cinema_layer.visible = true
+		
+	else:
+		# --- RETURNING TO MENU ---
+		cinema_layer.visible = false
+		
+		# 1. Safely remove from the cinema container
+		if sub_viewport.get_parent():
+			sub_viewport.get_parent().remove_child(sub_viewport)
+		
+		# 2. Return to the ORIGINAL container variable
+			viewport_container.add_child(sub_viewport)
+			$MarginContainer.visible = true
 	

@@ -64,7 +64,7 @@ shader_parameter/manual_time = 0.0
 [node name="Background" type="ColorRect" parent="." unique_id=1616733207]
 offset_right = 1151.0
 offset_bottom = 647.0
-color = Color(0.3403393, 0.34033936, 0.34033924, 1)
+color = Color(0.23031491, 0.23031494, 0.23031494, 1)
 
 [node name="CanvasLayer" type="CanvasLayer" parent="." unique_id=159168505]
 
@@ -279,7 +279,6 @@ theme_override_constants/margin_bottom = 20
 layout_mode = 2
 
 [node name="SubViewportContainer" type="SubViewportContainer" parent="CanvasLayer/MainMenu/MarginContainer/HBoxContainer/MidPanel/MarginContainer/VBoxContainer" unique_id=1478151198]
-self_modulate = Color(1, 1, 1, 0.49019608)
 layout_mode = 2
 size_flags_vertical = 3
 mouse_filter = 2
@@ -345,6 +344,19 @@ layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
 alignment = 1
+
+[node name="CinemaLayer" type="CanvasLayer" parent="CanvasLayer/MainMenu" unique_id=1920896423]
+
+[node name="CinemaContainer" type="SubViewportContainer" parent="CanvasLayer/MainMenu/CinemaLayer" unique_id=153807879]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+mouse_filter = 2
+stretch = true
 
 [node name="CanvasLayer2" type="CanvasLayer" parent="." unique_id=103379998]
 layer = 100
