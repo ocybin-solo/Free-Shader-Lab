@@ -59,9 +59,18 @@ shader_parameter/contrast = 1.0
 shader_parameter/saturation = 1.0
 shader_parameter/manual_time = 0.0
 
-[node name="Main" type="Node2D" unique_id=1805615736]
+[node name="Main" type="Control" unique_id=497213318]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
 
 [node name="Background" type="ColorRect" parent="." unique_id=1616733207]
+layout_mode = 0
 offset_right = 1151.0
 offset_bottom = 647.0
 color = Color(0.23031491, 0.23031494, 0.23031494, 1)
@@ -75,6 +84,8 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
 theme = SubResource("Theme_r0du0")
 script = ExtResource("1_uu6xs")
 

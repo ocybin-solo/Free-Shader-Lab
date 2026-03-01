@@ -22,6 +22,7 @@ buses/default_bus_layout=""
 
 [display]
 
+window/size/mode=2
 window/stretch/mode="canvas_items"
 window/stretch/aspect="expand"
 
