@@ -35,6 +35,7 @@ var original_parent: SubViewportContainer
 
 
 # -- Animation preview stuff 
+var is_screensaver_active : bool = false
 var preview_frame_index : int = 0
 var preview_timer : float = 0.0
 var is_playing_gif : bool = false
@@ -796,15 +797,22 @@ func _on_random_morph_button_pressed():
 	var random_preset = files[randi() % files.size()]
 	
 	# 2. Randomize the "Vibe"
-	%TransitionTypeButton.selected = randi() % 5 # Sine, Expo, Elastic, etc.
-	%SnapTimingButton.selected = randi() % 3    # Start, Mid, End
+	%TransitionTypeButton.selected = randi() % 5
+	%SnapTimingButton.selected = randi() % 3
 	
-	# 3. Randomize the duration (Between 3s and 12s)
-	# This ensures your 'transition_time' variable is updated before the morph starts
+	# 3. Use your existing transition_time logic
 	transition_time = randf_range(10.0, 20.0)
 	
 	# 4. TRIGGER THE MAGIC
 	_on_preset_button_pressed(random_preset)
+	
+	# 5. THE SCREENSAVER LOOP
+	# We wait for the transition to finish, plus a small 'rest' period
+	if is_screensaver_active:
+		var rest_time = transistion_speed_slider.value # You can link this to a slider later!
+		get_tree().create_timer(transition_time + rest_time).timeout.connect(
+			func(): if is_screensaver_active: _on_random_morph_button_pressed()
+		)
 	
 func update_performance_monitor():
 	var fps = Engine.get_frames_per_second()
@@ -872,3 +880,12 @@ func toggle_fullscreen():
 func _on_bg_color_button_color_changed(color: Color):
 	# This color already contains R, G, B, and A from the picker!
 	bg_rect.color = color
+
+func _on_screensaver_toggle_pressed():
+	is_screensaver_active = !is_screensaver_active
+	
+	if is_screensaver_active:
+		%ScreensaverButton.text = "SS Mode ON"
+		_on_random_morph_button_pressed() # Kickstart the loop
+	else:
+		%ScreensaverButton.text = "SS Mode OFF"

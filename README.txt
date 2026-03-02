@@ -1,6 +1,6 @@
 Overview
 
-Vortex Lab is a high-performance 2D visual synthesizer built in Godot 4.6. It allows you to transform static images into evolving, non-Euclidean geometries using math-heavy shaders (Poincaré, Möbius, and Vortex Lattice).
+Free Shader Lab is a high-performance 2D visual synthesizer built in Godot 4.6. It allows you to transform static images into evolving, non-Euclidean geometries using math-heavy shaders (Poincaré, Möbius, and Vortex Lattice).
 
 **Key Features**
 
@@ -13,6 +13,11 @@ Vortex Lab is a high-performance 2D visual synthesizer built in Godot 4.6. It al
     - **Surprise Button:** Randomizes the target preset values and triggers a smooth transition for unexpected "happy accidents."
 - **Clipboard Integration:** Click **"Copy Shader"** to copy the current processed GLSL code directly to your clipboard for use in other projects.
 
+Generative Art Engine: Introducing "SS Mode"—an automated gallery experience. The app will randomly select your saved presets and transition between them using randomized easing and durations.
+
+Endless Meditation: Combined with the new color-morphing logic, SS Mode creates a never-ending, breathing animation that evolves your presets into a living digital performance.
+
+Custom Pacing: The transition speed is tied to your UI sliders, allowing you to set the pulse of the experience from high-energy morphs to slow, contemplative shifts.
 
 
 
@@ -34,3 +39,10 @@ Vortex Lab is a high-performance 2D visual synthesizer built in Godot 4.6. It al
 ** If you'd like to support my work, I would love you for that ** 
 You can directly send money to me through Venmo : @boxel is the handle, and my name is Jeffrey Box
 Also, or instead, you can support me through GitHub.  I will setup GitHub Sponsors so that I am connected there, and you can use that system to buy me a cup of coffee.  Thank you very much!
+
+
+changelog - V1.1 
+added Screensaver mode
+added Background color picker, which correctly saves with transparent options
+True Image Integration: The main color picker now injects color directly into the shader pipeline. Instead of a simple "overlay," colors now interact dynamically with brightness, contrast, and saturation sliders for a professional "pop."
+Animated Transitions: Image colors are now part of the preset system—watch your "Buddha" shift from a deep meditative blue to a golden shimmer as you switch between states.

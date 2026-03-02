@@ -160,8 +160,14 @@ layout_mode = 2
 
 [node name="RandomizerButton" type="Button" parent="CanvasLayer/MainMenu/MarginContainer/HBoxContainer/LeftPanel/MarginContainer/VBoxContainer/PresetContainer/MarginContainer/VBoxContainer" unique_id=117632382]
 layout_mode = 2
-theme_override_font_sizes/font_size = 10
+theme_override_font_sizes/font_size = 8
 text = "Surprise"
+
+[node name="ScreensaverButton" type="Button" parent="CanvasLayer/MainMenu/MarginContainer/HBoxContainer/LeftPanel/MarginContainer/VBoxContainer/PresetContainer/MarginContainer/VBoxContainer" unique_id=1637302126]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 8
+text = "SS mode OFF"
 
 [node name="PresetScrollContainer" type="ScrollContainer" parent="CanvasLayer/MainMenu/MarginContainer/HBoxContainer/LeftPanel/MarginContainer/VBoxContainer/PresetContainer/MarginContainer/VBoxContainer" unique_id=1744165883]
 custom_minimum_size = Vector2(0, 50)
@@ -188,6 +194,7 @@ text = "Save Preset"
 
 [node name="ColorPickerButton" type="ColorPickerButton" parent="CanvasLayer/MainMenu/MarginContainer/HBoxContainer/LeftPanel/MarginContainer/VBoxContainer" unique_id=308108067]
 layout_mode = 2
+theme_override_font_sizes/font_size = 12
 text = "Size"
 
 [node name="Label" type="Label" parent="CanvasLayer/MainMenu/MarginContainer/HBoxContainer/LeftPanel/MarginContainer/VBoxContainer/ColorPickerButton" unique_id=360317291]
@@ -209,6 +216,7 @@ text = "Image Color"
 
 [node name="BGColorButton" type="ColorPickerButton" parent="CanvasLayer/MainMenu/MarginContainer/HBoxContainer/LeftPanel/MarginContainer/VBoxContainer" unique_id=367820822]
 layout_mode = 2
+theme_override_font_sizes/font_size = 12
 text = "Size"
 
 [node name="Label" type="Label" parent="CanvasLayer/MainMenu/MarginContainer/HBoxContainer/LeftPanel/MarginContainer/VBoxContainer/BGColorButton" unique_id=837178310]
@@ -233,14 +241,9 @@ oversampling_override = 1.0
 access = 2
 filters = PackedStringArray("*.png", "*.jpg")
 
-[node name="L_Filtering" type="Label" parent="CanvasLayer/MainMenu/MarginContainer/HBoxContainer/LeftPanel/MarginContainer/VBoxContainer" unique_id=1123144003]
-layout_mode = 2
-theme_override_font_sizes/font_size = 10
-text = "Filtering Methods"
-horizontal_alignment = 1
-
 [node name="B_Filters" type="OptionButton" parent="CanvasLayer/MainMenu/MarginContainer/HBoxContainer/LeftPanel/MarginContainer/VBoxContainer" unique_id=863845210]
 layout_mode = 2
+theme_override_font_sizes/font_size = 12
 alignment = 1
 item_count = 3
 popup/item_0/text = "Default"
@@ -309,6 +312,7 @@ size_flags_vertical = 10
 [node name="quitbutton" type="Button" parent="CanvasLayer/MainMenu/MarginContainer/HBoxContainer/LeftPanel/MarginContainer/VBoxContainer" unique_id=2085687930]
 layout_mode = 2
 size_flags_vertical = 10
+theme_override_font_sizes/font_size = 13
 text = "QUIT"
 
 [node name="MidPanel" type="VBoxContainer" parent="CanvasLayer/MainMenu/MarginContainer/HBoxContainer" unique_id=1863176864]
@@ -459,6 +463,7 @@ value = 10.0
 [connection signal="value_changed" from="CanvasLayer/MainMenu/MarginContainer/HBoxContainer/LeftPanel/MarginContainer/VBoxContainer/PresetContainer/MarginContainer/VBoxContainer/HBoxContainer/HSlider" to="CanvasLayer/MainMenu" method="_on_transition_speed_changed"]
 [connection signal="value_changed" from="CanvasLayer/MainMenu/MarginContainer/HBoxContainer/LeftPanel/MarginContainer/VBoxContainer/PresetContainer/MarginContainer/VBoxContainer/HBoxContainer/HSlider" to="CanvasLayer/MainMenu" method="_on_transition_slider_changed"]
 [connection signal="pressed" from="CanvasLayer/MainMenu/MarginContainer/HBoxContainer/LeftPanel/MarginContainer/VBoxContainer/PresetContainer/MarginContainer/VBoxContainer/RandomizerButton" to="CanvasLayer/MainMenu" method="_on_random_morph_button_pressed"]
+[connection signal="pressed" from="CanvasLayer/MainMenu/MarginContainer/HBoxContainer/LeftPanel/MarginContainer/VBoxContainer/PresetContainer/MarginContainer/VBoxContainer/ScreensaverButton" to="CanvasLayer/MainMenu" method="_on_screensaver_toggle_pressed"]
 [connection signal="pressed" from="CanvasLayer/MainMenu/MarginContainer/HBoxContainer/LeftPanel/MarginContainer/VBoxContainer/PresetContainer/MarginContainer/VBoxContainer/SavePresetButton" to="CanvasLayer/MainMenu" method="_on_save_preset_button_pressed"]
 [connection signal="color_changed" from="CanvasLayer/MainMenu/MarginContainer/HBoxContainer/LeftPanel/MarginContainer/VBoxContainer/ColorPickerButton" to="CanvasLayer/MainMenu" method="_on_color_picker_button_color_changed"]
 [connection signal="color_changed" from="CanvasLayer/MainMenu/MarginContainer/HBoxContainer/LeftPanel/MarginContainer/VBoxContainer/BGColorButton" to="CanvasLayer/MainMenu" method="_on_bg_color_button_color_changed"]
