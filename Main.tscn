@@ -8,7 +8,6 @@
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_cm0pq"]
 shader = ExtResource("2_r0du0")
-shader_parameter/mod_color = Color(1, 1, 1, 1)
 shader_parameter/sync_to_loop = 0.0
 shader_parameter/u_rotation = 0.0
 shader_parameter/mask_radius = 1.0
@@ -54,6 +53,7 @@ shader_parameter/rgb_split = 0.0
 shader_parameter/rainbow_pulse = 0.0
 shader_parameter/tv_static = 0.0
 shader_parameter/pixelate = 0.0
+shader_parameter/base_color = Color(1, 1, 1, 1)
 shader_parameter/brightness = 0.0
 shader_parameter/contrast = 1.0
 shader_parameter/saturation = 1.0

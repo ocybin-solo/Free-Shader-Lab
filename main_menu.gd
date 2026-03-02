@@ -514,7 +514,7 @@ func _on_color_picker_button_color_changed(color: Color):
 	# Directly updates the 'mod_color' uniform in the shader
 	var mat = display_sprite.material as ShaderMaterial
 	if mat:
-		mat.set_shader_parameter("mod_color", color)
+		mat.set_shader_parameter("base_color", color)
 
 func _on_filter_selected(index: int):
 	# index 0: Inherited, 1: Nearest (Pixel Art), 2: Linear (Smooth)
@@ -757,7 +757,7 @@ func _sync_ui_to_param(p_name: String, val):
 					"w": slider.value = val.w
 		
 		# Case C: Color Pickers
-		elif p_name == "mod_color" and ctrl_name == "mod_color" and val is Color:
+		elif p_name == "base_color" and ctrl_name == "base_color" and val is Color:
 			# If your 'ctrl' node has a 'color_picker' child, sync it here
 			if ctrl.has_node("ColorPickerButton"):
 				ctrl.get_node("ColorPickerButton").color = val

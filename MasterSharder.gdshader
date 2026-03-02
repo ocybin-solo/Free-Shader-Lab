@@ -1,6 +1,6 @@
 shader_type canvas_item;
 
-uniform vec4 mod_color : source_color = vec4(1.0);
+
 
 // DESC: ON = Perfect Loops for Exports. OFF = Smooth movement for live play.
 uniform float sync_to_loop : hint_range(0.0, 1.0, 1.0) = 0.0;
@@ -134,7 +134,7 @@ uniform float tv_static : hint_range(0.0, 1.0, 0.01) = 0.0;
 uniform float pixelate : hint_range(0.0, 1.0, 0.005) = 0.0;
 
 
-
+uniform vec4 base_color : source_color = vec4(1.0);
 // --- DYNAMIC UI CONTROLS ---
 uniform float brightness : hint_range(-1.0, 1.0, 0.01) = 0.0;
 uniform float contrast : hint_range(0.0, 2.0, 0.01) = 1.0;
@@ -161,11 +161,7 @@ void fragment() {
 
     // 3. Apply your Zoom
     uv *= fold_zoom;
-
-
 	// --- 2. UV DISTORTIONS ---
-	
-
 		// STYLE 0: RADIAL KALEIDOSCOPE
 		if (kaleido_sides > 1.0) {
 			vec2 p = uv; 
@@ -176,14 +172,11 @@ void fragment() {
 			a = abs(a - slice / 2.0);
 			uv = vec2(cos(a), sin(a)) * r;
 		}
-	
-
 // STYLE 1: GEOMETRIC FOLDING
 if (fold_number > 0.5) {
     for (int i = 0; i < 10; i++) {
         if (float(i) >= fold_number) break;
-        uv = abs(uv);
-        
+        uv = abs(uv);        
         // Use the new speed uniform instead of the hardcoded 0.1
         // This ensures the fractal stays still unless you move the slider
         if (fold_rot_speed > 0.01) {
@@ -191,65 +184,50 @@ if (fold_number > 0.5) {
 			float a_fold = manual_time * tau * speed_choice;
             float c_f = cos(a_fold); float s_f = sin(a_fold);
             uv = vec2(uv.x * c_f - uv.y * s_f, uv.x * s_f + uv.y * c_f);
-        }
-        
+        }        
         uv -= 0.3;
     }
 }
-
 // STYLE 2: HEXAGONAL TILING
 if (hex_scale > 1.1) {
     vec2 hex_uv = uv * hex_scale;
     vec2 r_hex = vec2(1.0, 1.73205);
-    vec2 h_hex = r_hex * 0.5;
-    
+    vec2 h_hex = r_hex * 0.5;    
     vec2 a_hex = mod(hex_uv, r_hex) - h_hex;
-    vec2 b_hex = mod(hex_uv - h_hex, r_hex) - h_hex;
-    
+    vec2 b_hex = mod(hex_uv - h_hex, r_hex) - h_hex;    
     // Declare g_uv here so it's available for the whole block
-    vec2 g_uv = dot(a_hex, a_hex) < dot(b_hex, b_hex) ? a_hex : b_hex;
-    
+    vec2 g_uv = dot(a_hex, a_hex) < dot(b_hex, b_hex) ? a_hex : b_hex;    
     // Only rotate if the user wants individual tile spin
 if (hex_rot_speed > 0.01) {
     // --- THE FIX: Use mix and sync_to_loop ---
     float h_speed = mix(hex_rot_speed, floor(hex_rot_speed), sync_to_loop);
-    float rot_a = manual_time * tau * h_speed; 
-    
+    float rot_a = manual_time * tau * h_speed;     
     float c_h = cos(rot_a); float s_h = sin(rot_a);
     g_uv = vec2(g_uv.x * c_h - g_uv.y * s_h, g_uv.x * s_h + g_uv.y * c_h);
-}
-    
+}    
     uv = g_uv / hex_scale; 
 }
-
 		// STYLE 3: CARTESIAN 4-WAY MIRROR
 		if (mirror_4way > 0.5) {
 			uv = abs(uv);
 		}
-
-	
-
-
 	// FISHEYE
 	if (abs(fisheye) > 0.01) {
 		float r = length(uv);
 		uv = uv * (1.0 + r * r * fisheye);
 	}
-
 // WAVE
 if (wave_strength > 0.01) {
     // Sync the wave frequency so it finishes exactly where it started
     float wave_sync = mix(10.0, floor(10.0), sync_to_loop); 
     uv.x += sin(uv.y * wave_sync + manual_time * tau) * (wave_strength * 0.05);
 }
-
 	// PIXELATE
 	if (pixelate > 0.0) {
 		vec2 size = vec2(textureSize(TEXTURE, 0));
 		float f = mix(1.0, 0.02, pixelate);
 		uv = floor(uv * size * f) / (size * f);
 	}
-
 // SWIRL
 if (swirl_strength > 0.01) {
     float dist = length(uv);
@@ -259,7 +237,6 @@ if (swirl_strength > 0.01) {
     float c = cos(angle); float s = sin(angle);
     uv = vec2(uv.x * c - uv.y * s, uv.x * s + uv.y * c);
 }
-
 // --- STYLE A: POINCARÉ GEOMETRIC WARP (STRENGTHENED) ---
 if (poincare_warp > 0.01) {
     float r = length(uv);
@@ -269,7 +246,6 @@ if (poincare_warp > 0.01) {
     float warp = 1.0 / max(0.001, 1.0 - (pow(r, 1.5) * strength));
     uv *= warp;
 }
-
 // --- HYPERBOLIC INVERSION (The 'Infinite Mirror' look) ---
 if (abs(hyperbolic_bend) > 0.1) {
     float r = length(uv);
@@ -279,81 +255,59 @@ if (abs(hyperbolic_bend) > 0.1) {
    // float inversion = (breathing_bend * 0.1) / (r * r + 0.01); 
     uv *= inversion;
 }
-
-
 // --- SUPERCONDUCTOR VORTEX LATTICE (Sensei Calibrated) ---
 if (vortex_density > 0.1) {
     // 1. LERP-SAFE DENSITY & NORMALIZATION
     // We normalize the 1-100 sliders to 0.0-1.0 range for the math
     float v_alpha = clamp(vortex_density * 0.1, 0.0, 1.0); 
-    float v_morph_norm = vortex_morph * 0.01; // 45 becomes 0.45
-    
+    float v_morph_norm = vortex_morph * 0.01; // 45 becomes 0.45    
     // Normalize X/Y shift from 1-100 to 0.0-1.0
     vec2 v_shift = vortex_state.xy * 0.01;
-    vec2 v_uv = (uv + v_shift) * vortex_density;
-    
+    vec2 v_uv = (uv + v_shift) * vortex_density;    
     // 2. THE LIQUID SNAP (Now with visible bending)
     float v_phase = vortex_state.z * 0.05; // Make Z more sensitive
-    float v_time = manual_time + v_phase;
-    
+    float v_time = manual_time + v_phase;    
     // Apply the liquid flow morph to BOTH axes for a 'swirl'
     // We multiply by 0.1 to make the bend strong but not 'broken'
     float bend_strength = vortex_morph * 0.1; 
     v_uv.x += cos(v_uv.y * 0.8 + v_time) * bend_strength;
-    v_uv.y += sin(v_uv.x * 0.8 + v_time) * bend_strength;
-    
+    v_uv.y += sin(v_uv.x * 0.8 + v_time) * bend_strength;    
     // 3. DISTANCE CALCULATION
     // In fract() space, the max distance from center is 0.5
-    float v_dist = length(fract(v_uv) - 0.5);
-    
+    float v_dist = length(fract(v_uv) - 0.5);    
     // 4. NORMALIZED HOLE SIZE (The 'W' Fix)
     // We multiply W by 0.005 so that 100 on the slider = 0.5 (the max radius)
-    float normalized_w = vortex_state.w * 0.005;
-    
+    float normalized_w = vortex_state.w * 0.005;    
     // Smoothstep creates the actual 'tubes'. 
     // If v_dist is less than W, we warp.
-    float v_mask = smoothstep(normalized_w, normalized_w - 0.1, v_dist);
-    
+    float v_mask = smoothstep(normalized_w, normalized_w - 0.1, v_dist);    
     // 5. APPLY WITH ALPHA BLEND
     // This scales the intensity based on your density slider
     uv *= mix(1.0, 1.0 + v_mask, 0.3 * v_alpha);
 }
-
-
 // --- QUATERNION UV TUMBLE (WITH DIGITAL/LIQUID MORPH) ---
 if (tumble_strength > 0.01) {
-    float safe_time = mod(manual_time, 10.0);
-    
+    float safe_time = mod(manual_time, 10.0);    
     // --- THE STUTTER LOGIC ---
     // Higher glitch_speed = more rapid jumps.
-    float digital_steps = floor(safe_time * glitch_speed) / glitch_speed; 
-    
+    float digital_steps = floor(safe_time * glitch_speed) / glitch_speed;     
     // Mix between smooth 'safe_time' and jagged 'digital_steps'
-    float morphed_time = mix(safe_time, digital_steps, glitch_style);
-    
-    vec3 p = vec3(uv, sqrt(max(0.0, 1.0 - dot(uv, uv))));
-    
+    float morphed_time = mix(safe_time, digital_steps, glitch_style);    
+    vec3 p = vec3(uv, sqrt(max(0.0, 1.0 - dot(uv, uv))));    
     // Add noise only when glitch_style is active
     float noise = rand(vec2(digital_steps)) * glitch_style;
     vec4 q_jitter = q_rot + (sin(morphed_time * 4.0) + noise) * glitch_factor;
-    vec4 q = normalize(mix(q_rot, q_jitter, glitch_factor)); 
-    
+    vec4 q = normalize(mix(q_rot, q_jitter, glitch_factor));     
     // Rotation Math
     vec3 q_xyz = q.xyz;
     float q_w = q.w;
     vec3 temp = cross(q_xyz, p) + q_w * p;
-    vec3 p_rotated = p + 2.0 * cross(q_xyz, temp);
-    
+    vec3 p_rotated = p + 2.0 * cross(q_xyz, temp);    
     uv = mix(uv, p_rotated.xy, tumble_strength);
 }
-
-
 	// --- 3. THE "WRAP" (CRITICAL STEP OF UV DISTORTIONS) ---
 	// We wrap the UVs BEFORE we sample the texture
 	vec2 wrapped_uv = fract(uv + 0.5);
-	
-
-
 	// --- 4. SAMPLING & COLOR EFFECTS ---
 	vec4 tex;
 	if (rgb_split > 0.0) {
@@ -366,22 +320,19 @@ if (tumble_strength > 0.01) {
 	} else {
 		tex = texture(TEXTURE, wrapped_uv);
 	}
-	
+    // APPLY BASE COLOR HERE (True Processing)
+    tex.rgb *= base_color.rgb; 
 // --- CONTROLLED RAINBOW PORTAL ---
 if (ray_intensity > 0.01) {
     vec2 current_pos = wrapped_uv; 
     float hit_dist = -1.0;
     float accum_density = 0.0;
-
     for (int i = 0; i < int(max_steps); i++) {
-        float d_center = length(current_pos - 0.5);
-        
+        float d_center = length(current_pos - 0.5);        
         // Twist the rays using the angle and hyperbolic bend
         float spiral = ray_angle + (d_center * hyperbolic_bend * 2.0);
-        vec2 bent_dir = vec2(cos(spiral), sin(spiral));
-        
-		current_pos += bent_dir * (step_length * (1.0 - hit_dist * 0.5)); 
-        
+        vec2 bent_dir = vec2(cos(spiral), sin(spiral));        
+		current_pos += bent_dir * (step_length * (1.0 - hit_dist * 0.5));         
         // Use fract() to ensure we stay within the texture bounds
         float sample_a = texture(TEXTURE, fract(current_pos)).a;
         if (sample_a > 0.1) {
@@ -391,7 +342,6 @@ if (ray_intensity > 0.01) {
         }
         if (accum_density > 0.95) break;
     }
-
  if (hit_dist > -1.0) {
         // 1. CALCULATE THE PULSE FIRST
         float pulse_val = 1.0;
@@ -399,72 +349,57 @@ if (ray_intensity > 0.01) {
             float p_freq = mix(ray_pulse_freq, floor(ray_pulse_freq), sync_to_loop);
             pulse_val = sin(manual_time * tau * p_freq) * 0.5 + 0.5;
         }
-
         // 2. NOW CALCULATE INTENSITY (Using pulse_val)
         float falloff = pow(1.0 - hit_dist, ray_softness);
-        float final_intensity = falloff * ray_intensity * ray_spread * pulse_val * accum_density;
-        
+        float final_intensity = falloff * ray_intensity * ray_spread * pulse_val * accum_density;        
         // 3. COLOR & RAINBOW
         float cycle_speed = mix(ray_cycle_speed, floor(ray_cycle_speed), sync_to_loop);
         float color_phase = (manual_time * tau * cycle_speed) + (hit_dist * 5.0);
         vec3 rainbow = vec3(sin(color_phase)*0.5+0.5, sin(color_phase+2.0)*0.5+0.5, sin(color_phase+4.0)*0.5+0.5);
         vec3 final_glow_color = mix(ray_color.rgb, rainbow, ray_rainbow_mix);
-
 // --- 3a. FEEDBACK LOOP (GHOSTING) ---
 if (feedback_amount > 0.01) {
     vec3 feedback_accum = vec3(0.0);
     float alpha_accum = 0.0;
-    int samples = 4; 
-    
+    int samples = 4;     
     for (int i = 1; i <= samples; i++) {
         // USE THE OFFSET: This creates the "time-travel" look for the ghosts
-        float offset = float(i) * 0.01 * feedback_amount;
-        
+        float offset = float(i) * 0.01 * feedback_amount;        
         // Combine the drift with a tiny bit of time-based oscillation
         vec2 time_drift = vec2(sin(manual_time * tau + offset), cos(manual_time * tau + offset)) * offset;
-        vec2 ghost_uv = fract(wrapped_uv + (feedback_drift * float(i)) + time_drift);
-        
-        vec4 ghost_sample = texture(TEXTURE, ghost_uv);
-        
+        vec2 ghost_uv = fract(wrapped_uv + (feedback_drift * float(i)) + time_drift);        
+        vec4 ghost_sample = texture(TEXTURE, ghost_uv);        
         float fade = pow(feedback_amount, float(i));
         feedback_accum += ghost_sample.rgb * fade;
         alpha_accum += ghost_sample.a * fade;
-    }
-    
+    }    
     tex.rgb = mix(tex.rgb, tex.rgb + feedback_accum, feedback_amount);
     tex.a = max(tex.a, alpha_accum * feedback_amount);
-}
-
+	}
         // 4. APPLY TO IMAGE
         tex.rgb += final_glow_color * final_intensity; 
         tex.a = clamp(tex.a + (final_intensity * 0.5), 0.0, 1.0);
     }
 } // END OF RAY MARCHING
-
-
 // --- RADIAL PLASMA (Perfectly Synced) ---
 if (plasma_strength > 0.0) {
     // 1. Calculate distance (0.0 at center, 0.5 at edges)
-	float dist = length(UV - 0.5);
-    
+	float dist = length(UV - 0.5);    
     // 2. The "Sync Secret": Use a whole number for the ring count
     // By using tau * a whole number (e.g., 5.0), the wave starts 
     // and ends at the same phase (0 and 1.0)
     float ring_count = 5.0; // Higher = more rings
       // Snap the wave movement speed
     float p_speed = mix(1.0, floor(1.0), sync_to_loop);
-    float v = sin(dist * (tau * ring_count) - manual_time * tau * p_speed);
-    
+    float v = sin(dist * (tau * ring_count) - manual_time * tau * p_speed);    
     // 3. Simple color mapping that also uses tau for perfect color loops
     vec3 plasma_colors;
     plasma_colors.r = sin(v * 2.0 + manual_time * tau);
     plasma_colors.g = sin(v * 2.0 + 2.0 + manual_time * tau);
     plasma_colors.b = sin(v * 2.0 + 4.0 + manual_time * tau);
-    plasma_colors = plasma_colors * 0.5 + 0.5;
-    
+    plasma_colors = plasma_colors * 0.5 + 0.5;    
     tex.rgb = mix(tex.rgb, plasma_colors, plasma_strength);
-}
-
+	}
 	// [CONTINUE WITH THERMAL, HUE SHIFT, VIGNETTE, RAINBOW PULSE...]
     // (Ensure they use 'tex.rgb' and 'wrapped_uv' for calculations)
 		if (thermal_shift > 0.0) {
@@ -473,97 +408,72 @@ if (plasma_strength > 0.0) {
 		vec3 thermal = vec3(lum, 1.0 - lum, sin(lum * 10.0 + manual_time * tau));
 		tex.rgb = mix(tex.rgb, thermal, thermal_shift);
 	}
-
 // 7. HUE SHIFT (Synchronized & Vibrant)
 if (hue_shift_speed > 0.5) {
     // 1. Convert RGB to YIQ (Luminance and Chrominance)
     const mat3 rgb2yiq = mat3(vec3(0.299, 0.587, 0.114), vec3(0.596, -0.274, -0.322), vec3(0.211, -0.523, 0.312));
-    const mat3 yiq2rgb = mat3(vec3(1.0, 0.956, 0.621), vec3(1.0, -0.272, -0.647), vec3(1.0, -1.106, 1.703));
-    
-    vec3 yiq = rgb2yiq * tex.rgb;
-    
+    const mat3 yiq2rgb = mat3(vec3(1.0, 0.956, 0.621), vec3(1.0, -0.272, -0.647), vec3(1.0, -1.106, 1.703));    
+    vec3 yiq = rgb2yiq * tex.rgb;    
     // 2. Rotate the Chrominance (color) based on time
     // Ensure hue_shift_speed is a whole number for a perfect loop!
     // Instead of: float hue = manual_time * tau * floor(hue_shift_speed);
 	float hue_speed = mix(hue_shift_speed, floor(hue_shift_speed), sync_to_loop);
-	float hue = manual_time * tau * hue_speed;
-    
+	float hue = manual_time * tau * hue_speed;    
     float chroma_cos = cos(hue);
-    float chroma_sin = sin(hue);
-    
+    float chroma_sin = sin(hue);    
     vec2 rotated_chroma = vec2(
         yiq.y * chroma_cos - yiq.z * chroma_sin,
         yiq.y * chroma_sin + yiq.z * chroma_cos
-    );
-    
+    );    
     // 3. Convert back to RGB
     tex.rgb = yiq2rgb * vec3(yiq.x, rotated_chroma.x, rotated_chroma.y);
-}
-	
+}	
 	if (invert > 0.0) tex.rgb = mix(tex.rgb, 1.0 - tex.rgb, invert);
-
 	tex.rgb = (tex.rgb - 0.5) * contrast + 0.5 + brightness;
 	tex.rgb = mix(vec3(dot(tex.rgb, vec3(0.299, 0.587, 0.114))), tex.rgb, saturation);
-
 	// 4. OVERLAYS
 	if (tv_static > 0.0) {
 		// To make static loop, we need a 3D noise or a scrolling coordinate, 
 		// but since it's random, we'll just use manual_time as a seed.
 		tex.rgb += (rand(UV + floor(manual_time * 24.0)) - 0.5) * tv_static;
 	}	
-
 		// --- RAINBOW PULSE EFFECT ---
 	if (rainbow_pulse > 0.0) {
-		float tau = 6.28318530718;
-		
+		float tau = 6.28318530718;		
 		// 1. Create the cycling rainbow color based on manual_time
 		// We shift the phase for R, G, and B to create the spectrum
 		vec3 rainbow;
 		rainbow.r = cos(manual_time * tau);
 		rainbow.g = cos(manual_time * tau + 2.0);
-		rainbow.b = cos(manual_time * tau + 4.0);
-		
+		rainbow.b = cos(manual_time * tau + 4.0);		
 		// 2. Normalize to 0.0 - 1.0 range
-		rainbow = rainbow * 0.5 + 0.5;
-		
+		rainbow = rainbow * 0.5 + 0.5;		
 		// 3. Apply a pulsing "glow" intensity using a sine wave
 		  float r_speed = mix(1.0, floor(1.0), sync_to_loop);
-   		 float glow = sin(manual_time * tau * r_speed) * 0.5 + 0.5;
-		
+   		 float glow = sin(manual_time * tau * r_speed) * 0.5 + 0.5;		
 		// 4. Mix it into the final texture
 		vec3 rainbow_final = mix(tex.rgb, rainbow, rainbow_pulse * glow);
 		tex.rgb += (rainbow_final * rainbow_pulse * glow); 
-}
-    
-
-
-
-
-
+} 
 // --- 7. FINAL MASKING & OUTPUT ---
 // --- 6. ELASTIC ELLIPSE MASK ---
 // Use the raw UVs (0.0 to 1.0) centered at 0.5
 vec2 mask_uv = UV - 0.5;
-
 // Apply the manual stretch
 // 1.0 = Default (follows Viewport shape)
 // < 1.0 = Squeezes horizontally (Vertical Oval)
 // > 1.0 = Stretches horizontally (Horizontal Oval)
 mask_uv.x *= mask_stretch;
-
 float dist_from_center = length(mask_uv);
-
 // Using a small value like 0.05 for the 'feather' creates a nice soft glow edge
 float feather = 0.05; 
 float mask = smoothstep(mask_radius, mask_radius - feather, dist_from_center);
-
 // Apply the mask to the image and the ray-marched glow
 tex.rgb *= mask;
 tex.a *= mask;
 // This adds a thin, glowing ring at the very edge of your mask
 float edge_glow = smoothstep(mask_radius - 0.02, mask_radius, dist_from_center) * mask;
-tex.rgb += mod_color.rgb * edge_glow * 0.5;
-
+tex.rgb += base_color.rgb * edge_glow * 0.5;
 // --- 2026 OPTICAL POLISH: MASK FRINGE ---
 // This makes the very edge of your elliptical mask look like a glass lens
 if (abs(mask_radius - dist_from_center) < 0.05) {
@@ -573,6 +483,7 @@ if (abs(mask_radius - dist_from_center) < 0.05) {
     tex.rgb = mix(tex.rgb, vec3(r_fringe, tex.g, b_fringe), fringe * 0.5);
 }
 // Final Output
-COLOR = tex * mod_color;
+// COLOR = tex * mod_color;
+COLOR = vec4(tex.rgb, tex.a * base_color.a);
 	}
 	
