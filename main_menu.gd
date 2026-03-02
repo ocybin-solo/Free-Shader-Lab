@@ -14,13 +14,14 @@ extends Control
 @onready var stop_button = $"../../CanvasLayer2/VBoxContainer/StopPreviewButton"
 @onready var preview_speed_slider = $"../../CanvasLayer2/VBoxContainer/PreviewSpeedSlider"
 @onready var warning_label = $MarginContainer/HBoxContainer/MidPanel/MarginContainer/VBoxContainer/WarningLabel
+@onready var bg_rect = $MarginContainer/HBoxContainer/MidPanel/MarginContainer/VBoxContainer/SubViewportContainer/SubViewport/CanvasLayer/BGColorRect
 # Inputs
 @onready var rows_input = $MarginContainer/HBoxContainer/LeftPanel/MarginContainer/VBoxContainer/RowsInput
 @onready var frame_count_input = $MarginContainer/HBoxContainer/LeftPanel/MarginContainer/VBoxContainer/FrameCountSpinbox
 @onready var speed_slider = $MarginContainer/HBoxContainer/LeftPanel/MarginContainer/VBoxContainer/HSlider
 @onready var fps_label = $"../../CanvasLayer2/VBoxContainer/FPSLabel"
 @onready var perf_label = $MarginContainer/HBoxContainer/LeftPanel/MarginContainer/VBoxContainer/PerfLabel
-
+@onready var transistion_speed_slider = $MarginContainer/HBoxContainer/LeftPanel/MarginContainer/VBoxContainer/PresetContainer/MarginContainer/VBoxContainer/HBoxContainer/HSlider
 
 @onready var save_button = $MarginContainer/HBoxContainer/LeftPanel/MarginContainer/VBoxContainer/B_Save
 @onready var transition_label = $MarginContainer/HBoxContainer/LeftPanel/MarginContainer/VBoxContainer/PresetContainer/MarginContainer/VBoxContainer/HBoxContainer/Label
@@ -55,7 +56,7 @@ var max_zoom = 5.0
 var is_panning = false
 var is_exporting = false
 var preview_elapsed_time: float = 0.0
-var transition_time: float = 1.5 # for transition between presets
+var transition_time = 10.0
 
 
 @onready var ui_overlay = self 
@@ -88,8 +89,11 @@ func _ready():
 	snap_btn.add_item("Snap at Start", 0)
 	snap_btn.add_item("Snap at Mid-Point", 1)
 	snap_btn.add_item("Snap at End", 2)
-	
 
+	bg_rect.color = Color(0, 0, 0, 0)
+	# Also update the Button's preview color so it matches
+	$MarginContainer/HBoxContainer/LeftPanel/MarginContainer/VBoxContainer/BGColorButton.color = Color(0, 0, 0, 0)
+	$MarginContainer/HBoxContainer/LeftPanel/MarginContainer/VBoxContainer/ColorPickerButton.color = Color(1, 1, 1, 1) 
 	
 
 	
@@ -510,7 +514,7 @@ func _on_reset_all_button_pressed():
 		if child.has_method("reset_to_default"):
 			child.reset_to_default()
 
-func _on_color_picker_button_color_changed(color: Color):
+func _on_color_picker_button_color_changed(color: Color): # the image's color
 	# Directly updates the 'mod_color' uniform in the shader
 	var mat = display_sprite.material as ShaderMaterial
 	if mat:
@@ -875,4 +879,7 @@ func toggle_fullscreen():
 		# 2. Return to the ORIGINAL container variable
 			viewport_container.add_child(sub_viewport)
 			$MarginContainer.visible = true
-	
+			
+func _on_bg_color_button_color_changed(color: Color):
+	# This color already contains R, G, B, and A from the picker!
+	bg_rect.color = color

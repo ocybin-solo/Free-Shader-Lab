@@ -70,11 +70,10 @@ size_flags_horizontal = 3
 size_flags_vertical = 3
 
 [node name="Background" type="ColorRect" parent="." unique_id=1616733207]
-visible = false
 layout_mode = 0
 offset_right = 1151.0
 offset_bottom = 647.0
-color = Color(0.23031491, 0.23031494, 0.23031494, 1)
+color = Color(0.23137255, 0.23137255, 0.23137255, 0)
 
 [node name="CanvasLayer" type="CanvasLayer" parent="." unique_id=159168505]
 follow_viewport_enabled = true
@@ -189,8 +188,45 @@ text = "Save Preset"
 
 [node name="ColorPickerButton" type="ColorPickerButton" parent="CanvasLayer/MainMenu/MarginContainer/HBoxContainer/LeftPanel/MarginContainer/VBoxContainer" unique_id=308108067]
 layout_mode = 2
-text = "Choose Color"
-color = Color(0.48178947, 0.48178947, 0.48178947, 1)
+text = "Size"
+
+[node name="Label" type="Label" parent="CanvasLayer/MainMenu/MarginContainer/HBoxContainer/LeftPanel/MarginContainer/VBoxContainer/ColorPickerButton" unique_id=360317291]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -46.5
+offset_top = -11.5
+offset_right = 46.5
+offset_bottom = 11.5
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 6
+text = "Image Color"
+
+[node name="BGColorButton" type="ColorPickerButton" parent="CanvasLayer/MainMenu/MarginContainer/HBoxContainer/LeftPanel/MarginContainer/VBoxContainer" unique_id=367820822]
+layout_mode = 2
+text = "Size"
+
+[node name="Label" type="Label" parent="CanvasLayer/MainMenu/MarginContainer/HBoxContainer/LeftPanel/MarginContainer/VBoxContainer/BGColorButton" unique_id=837178310]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -34.0
+offset_top = -11.5
+offset_right = 34.0
+offset_bottom = 11.5
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 6
+text = "BG Color"
 
 [node name="OpenFile" type="FileDialog" parent="CanvasLayer/MainMenu/MarginContainer/HBoxContainer/LeftPanel/MarginContainer/VBoxContainer" unique_id=1078859704]
 oversampling_override = 1.0
@@ -299,9 +335,22 @@ stretch = true
 mouse_target = true
 
 [node name="SubViewport" type="SubViewport" parent="CanvasLayer/MainMenu/MarginContainer/HBoxContainer/MidPanel/MarginContainer/VBoxContainer/SubViewportContainer" unique_id=438583877]
+transparent_bg = true
 handle_input_locally = false
 size = Vector2i(671, 526)
 render_target_update_mode = 4
+
+[node name="CanvasLayer" type="CanvasLayer" parent="CanvasLayer/MainMenu/MarginContainer/HBoxContainer/MidPanel/MarginContainer/VBoxContainer/SubViewportContainer/SubViewport" unique_id=1270967962]
+layer = -1
+
+[node name="BGColorRect" type="ColorRect" parent="CanvasLayer/MainMenu/MarginContainer/HBoxContainer/MidPanel/MarginContainer/VBoxContainer/SubViewportContainer/SubViewport/CanvasLayer" unique_id=1566527194]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
 
 [node name="Sprite2D" type="Sprite2D" parent="CanvasLayer/MainMenu/MarginContainer/HBoxContainer/MidPanel/MarginContainer/VBoxContainer/SubViewportContainer/SubViewport" unique_id=2059662500]
 material = SubResource("ShaderMaterial_cm0pq")
@@ -412,6 +461,7 @@ value = 10.0
 [connection signal="pressed" from="CanvasLayer/MainMenu/MarginContainer/HBoxContainer/LeftPanel/MarginContainer/VBoxContainer/PresetContainer/MarginContainer/VBoxContainer/RandomizerButton" to="CanvasLayer/MainMenu" method="_on_random_morph_button_pressed"]
 [connection signal="pressed" from="CanvasLayer/MainMenu/MarginContainer/HBoxContainer/LeftPanel/MarginContainer/VBoxContainer/PresetContainer/MarginContainer/VBoxContainer/SavePresetButton" to="CanvasLayer/MainMenu" method="_on_save_preset_button_pressed"]
 [connection signal="color_changed" from="CanvasLayer/MainMenu/MarginContainer/HBoxContainer/LeftPanel/MarginContainer/VBoxContainer/ColorPickerButton" to="CanvasLayer/MainMenu" method="_on_color_picker_button_color_changed"]
+[connection signal="color_changed" from="CanvasLayer/MainMenu/MarginContainer/HBoxContainer/LeftPanel/MarginContainer/VBoxContainer/BGColorButton" to="CanvasLayer/MainMenu" method="_on_bg_color_button_color_changed"]
 [connection signal="file_selected" from="CanvasLayer/MainMenu/MarginContainer/HBoxContainer/LeftPanel/MarginContainer/VBoxContainer/OpenFile" to="CanvasLayer/MainMenu" method="_on_file_dialog_file_selected"]
 [connection signal="item_selected" from="CanvasLayer/MainMenu/MarginContainer/HBoxContainer/LeftPanel/MarginContainer/VBoxContainer/B_Filters" to="CanvasLayer/MainMenu" method="_on_filter_selected"]
 [connection signal="pressed" from="CanvasLayer/MainMenu/MarginContainer/HBoxContainer/LeftPanel/MarginContainer/VBoxContainer/B_Import" to="CanvasLayer/MainMenu" method="_on_open_button_pressed"]
