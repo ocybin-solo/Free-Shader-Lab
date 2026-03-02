@@ -22,7 +22,7 @@ extends Control
 @onready var fps_label = $"../../CanvasLayer2/VBoxContainer/FPSLabel"
 @onready var perf_label = $MarginContainer/HBoxContainer/LeftPanel/MarginContainer/VBoxContainer/PerfLabel
 @onready var transistion_speed_slider = $MarginContainer/HBoxContainer/LeftPanel/MarginContainer/VBoxContainer/PresetContainer/MarginContainer/VBoxContainer/HBoxContainer/HSlider
-
+@onready var bg_color_picker_button = $MarginContainer/HBoxContainer/LeftPanel/MarginContainer/VBoxContainer/BGColorButton
 @onready var save_button = $MarginContainer/HBoxContainer/LeftPanel/MarginContainer/VBoxContainer/B_Save
 @onready var transition_label = $MarginContainer/HBoxContainer/LeftPanel/MarginContainer/VBoxContainer/PresetContainer/MarginContainer/VBoxContainer/HBoxContainer/Label
 
@@ -92,8 +92,8 @@ func _ready():
 
 	bg_rect.color = Color(0, 0, 0, 0)
 	# Also update the Button's preview color so it matches
-	$MarginContainer/HBoxContainer/LeftPanel/MarginContainer/VBoxContainer/BGColorButton.color = Color(0, 0, 0, 0)
-	$MarginContainer/HBoxContainer/LeftPanel/MarginContainer/VBoxContainer/ColorPickerButton.color = Color(1, 1, 1, 1) 
+	bg_color_picker_button.color = Color(0, 0, 0, 0)
+	bg_color_picker_button.color = Color(1, 1, 1, 1) 
 	
 
 	
@@ -540,31 +540,24 @@ func create_preset_from_current_settings() -> ShaderPreset:
 	if not mat: return null
 	
 	var new_preset = ShaderPreset.new()
-	var params = RenderingServer.get_shader_parameter_list(mat.shader.get_rid())
 	
-	for p in params:
-		# --- STAGE 1: THE ORIGINAL FILTERS ---
-		# Skip internal Godot stuff and the manual timer
-		if p.name.begins_with("shader_parameter/") or p.name == "manual_time":
-			continue
+	# 1. Capture ALL Shader Parameters (like base_color, brightness, etc.)
+	# We use the material's property list to ensure we get everything
+	for p in mat.get_property_list():
+		if p.name.begins_with("shader_parameter/"):
+			var p_name = p.name.replace("shader_parameter/", "")
+			if p_name == "manual_time": continue
 			
-		var current_val = mat.get_shader_parameter(p.name)
-		
-		# --- STAGE 2: THE PURITY FILTER ---
-		if current_val != null:
-			# Fix the "Quaternion Explosion" (Normalization)
-			if current_val is Quaternion:
-				# .normalized() ensures the 4D rotation is a "unit" (length of 1.0)
-				# This prevents the transition jitter and the "90, 25, 28" errors.
-				current_val = current_val.normalized()
-			
-			# Safety check for Floats to prevent "NaN" (Not a Number) or "Inf" (Infinity)
-			elif current_val is float:
-				if is_nan(current_val) or is_inf(current_val):
-					current_val = 0.0
-			
-			# --- STAGE 3: SAVE TO PRESET ---
-			new_preset.set_param(p.name, current_val)
+			var val = mat.get_shader_parameter(p_name)
+			if val != null:
+				# Normalize Quaternions for smooth transitions
+				if val is Quaternion: val = val.normalized()
+				new_preset.set_param(p_name, val)
+	
+	# 2. THE MISSING LINK: Capture the Background Node Color
+	# We name it "bg_color" so the transition script can find it
+	if bg_rect:
+		new_preset.set_param("bg_color", bg_rect.color)
 			
 	return new_preset
 
@@ -647,16 +640,19 @@ func _on_preset_button_pressed(file_name: String):
 	var mat = display_sprite.material as ShaderMaterial
 	var start_states = {}
 	var end_states = {}
-	var snap_params = {} # Holds the "Integer/Structural" values
+	var snap_params = {}
 
 	# --- STAGE 1: SORT PARAMETERS ---
+	# Safety Catch: Only add background to tween if the preset actually has it
+	var target_bg = preset.get_param("bg_color")
+	if target_bg is Color:
+		start_states["bg_color_internal"] = bg_rect.color
+		end_states["bg_color_internal"] = target_bg
+
 	for p_name in preset.parameters.keys():
 		var end_val = preset.get_param(p_name)
-		
-		# Always normalize Quats on load for "Pure Math"
 		if end_val is Quaternion: end_val = end_val.normalized()
 		
-		# Identify the "Snap" parameters
 		if p_name in ["sync_to_loop", "kaleido_sides", "fold_number", "max_steps", "vortex_density"]:
 			snap_params[p_name] = end_val
 			continue
@@ -668,7 +664,7 @@ func _on_preset_button_pressed(file_name: String):
 			start_states[p_name] = s_val
 			end_states[p_name] = end_val
 
-	# --- STAGE 2: CALCULATE EASING & SNAP DELAY ---
+	# --- STAGE 2: EASING & TIMING ---
 	var trans_type = Tween.TRANS_SINE
 	match %TransitionTypeButton.selected:
 		1: trans_type = Tween.TRANS_EXPO
@@ -676,27 +672,24 @@ func _on_preset_button_pressed(file_name: String):
 		3: trans_type = Tween.TRANS_BACK
 		4: trans_type = Tween.TRANS_BOUNCE
 
-	var snap_delay = 0.0 # Snap at Start
+	var snap_delay = 0.0
 	match %SnapTimingButton.selected:
-		1: snap_delay = transition_time / 2.0 # Mid-Point
-		2: snap_delay = transition_time # At the End
+		1: snap_delay = transition_time / 2.0
+		2: snap_delay = transition_time
 
 	# --- STAGE 3: THE TWEEN ---
 	var tween = create_tween().set_parallel(true).set_trans(trans_type).set_ease(Tween.EASE_IN_OUT)
 
-	# The "Delayed Snap" Callback
 	tween.tween_callback(func():
 		for p in snap_params:
 			mat.set_shader_parameter(p, snap_params[p])
 			_sync_ui_to_param(p, snap_params[p])
 	).set_delay(snap_delay)
 
-	# The Master Morph
 	tween.tween_method(
 		func(weight): _update_transition_step(weight, start_states, end_states, mat),
 		0.0, 1.0, transition_time
 	)
-
 
 	
 # --- HELPER 1: THE STEPPER ---
@@ -714,24 +707,35 @@ func _update_transition_step(weight: float, starts: Dictionary, ends: Dictionary
 		else:
 			current_val = lerp(start, end, weight)
 		
-# 2. THE STABILITY CLAMPS (Preventing the "Manic" visuals)
+		# 2. Divert Background Node Update
+		if p_name == "bg_color_internal":
+			bg_rect.color = current_val
+			_sync_ui_to_param(p_name, current_val)
+			continue 
+
+		# 3. Stability Clamps
 		if p_name == "step_length":
 			current_val = clamp(current_val, 0.001, 0.05)
 		elif p_name == "max_steps":
 			current_val = clamp(current_val, 1.0, 150.0)
 		elif p_name in ["mask_radius", "fold_zoom", "ray_intensity", "vortex_state"]:
-			# Ensure these specific sliders never go below zero
 			if current_val is float:
 				current_val = max(0.0, current_val)
-			# If it's a 4D type, we only want to ensure the 'w' (hole size) is positive
 			if current_val is Quaternion or current_val is Vector4:
 				current_val.w = max(0.0, current_val.w)
 			
 		mat.set_shader_parameter(p_name, current_val)
 		_sync_ui_to_param(p_name, current_val)
-
+		
 # --- HELPER 2: THE UI SYNC ---
 func _sync_ui_to_param(p_name: String, val):
+	# Update the Background Button directly
+	if p_name == "bg_color_internal" and val is Color:
+		if bg_color_picker_button:
+			bg_color_picker_button.color = val
+		return
+
+	# Standard Slider/Picker Loop
 	for ctrl in controls_container.get_children():
 		if not ctrl.has_method("get_param_name"): continue
 		var ctrl_name = ctrl.get_param_name()
@@ -740,29 +744,24 @@ func _sync_ui_to_param(p_name: String, val):
 		var original_step = slider.step
 		slider.step = 0 
 		
-		# --- THE CRASH FIX ---
-		# Case A: Standard float sliders (e.g. 'swirl_strength')
+		# Case A: Floats
 		if ctrl_name == p_name and (val is float or val is int):
 			if not is_equal_approx(slider.value, float(val)):
 				slider.value = float(val)
 		
-		# Case B: 4D Axis sliders (e.g. 'q_rot.x' or 'vortex_state.w')
+		# Case B: 4D Axis
 		elif ctrl_name.begins_with(p_name + "."):
-			# Only proceed if we actually have 4D data to read from
 			if val is Vector4 or val is Quaternion:
 				var parts = ctrl_name.split(".")
-				var axis = parts[1] # "x", "y", "z", or "w"
-				
-				# Direct property access is safer and faster than val[axis]
+				var axis = parts[1]
 				match axis:
 					"x": slider.value = val.x
 					"y": slider.value = val.y
 					"z": slider.value = val.z
 					"w": slider.value = val.w
 		
-		# Case C: Color Pickers
+		# Case C: Image Color Picker (base_color)
 		elif p_name == "base_color" and ctrl_name == "base_color" and val is Color:
-			# If your 'ctrl' node has a 'color_picker' child, sync it here
 			if ctrl.has_node("ColorPickerButton"):
 				ctrl.get_node("ColorPickerButton").color = val
 
