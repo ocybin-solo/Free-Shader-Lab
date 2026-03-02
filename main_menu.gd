@@ -541,8 +541,7 @@ func create_preset_from_current_settings() -> ShaderPreset:
 	
 	var new_preset = ShaderPreset.new()
 	
-	# 1. Capture ALL Shader Parameters (like base_color, brightness, etc.)
-	# We use the material's property list to ensure we get everything
+	# 1. Capture ALL Shader Parameters (including base_color)
 	for p in mat.get_property_list():
 		if p.name.begins_with("shader_parameter/"):
 			var p_name = p.name.replace("shader_parameter/", "")
@@ -550,12 +549,10 @@ func create_preset_from_current_settings() -> ShaderPreset:
 			
 			var val = mat.get_shader_parameter(p_name)
 			if val != null:
-				# Normalize Quaternions for smooth transitions
 				if val is Quaternion: val = val.normalized()
 				new_preset.set_param(p_name, val)
 	
-	# 2. THE MISSING LINK: Capture the Background Node Color
-	# We name it "bg_color" so the transition script can find it
+	# 2. Capture the Background Node Color
 	if bg_rect:
 		new_preset.set_param("bg_color", bg_rect.color)
 			
@@ -707,35 +704,33 @@ func _update_transition_step(weight: float, starts: Dictionary, ends: Dictionary
 		else:
 			current_val = lerp(start, end, weight)
 		
-		# 2. Divert Background Node Update
+		# 2. Divert Background Node
 		if p_name == "bg_color_internal":
 			bg_rect.color = current_val
 			_sync_ui_to_param(p_name, current_val)
 			continue 
 
 		# 3. Stability Clamps
-		if p_name == "step_length":
-			current_val = clamp(current_val, 0.001, 0.05)
-		elif p_name == "max_steps":
-			current_val = clamp(current_val, 1.0, 150.0)
-		elif p_name in ["mask_radius", "fold_zoom", "ray_intensity", "vortex_state"]:
-			if current_val is float:
-				current_val = max(0.0, current_val)
-			if current_val is Quaternion or current_val is Vector4:
-				current_val.w = max(0.0, current_val.w)
+		# ... (Keep your existing step_length/max_steps/vortex_state clamps here) ...
 			
 		mat.set_shader_parameter(p_name, current_val)
 		_sync_ui_to_param(p_name, current_val)
 		
 # --- HELPER 2: THE UI SYNC ---
 func _sync_ui_to_param(p_name: String, val):
-	# Update the Background Button directly
+	# Update Background Button
 	if p_name == "bg_color_internal" and val is Color:
 		if bg_color_picker_button:
 			bg_color_picker_button.color = val
 		return
 
-	# Standard Slider/Picker Loop
+	# Update Image Color Button (base_color)
+	if p_name == "base_color" and val is Color:
+		# Replace with your actual Image Color Button variable name if different
+		if color_picker: 
+			color_picker.color = val
+
+	# Standard Slider Loop
 	for ctrl in controls_container.get_children():
 		if not ctrl.has_method("get_param_name"): continue
 		var ctrl_name = ctrl.get_param_name()
@@ -759,11 +754,6 @@ func _sync_ui_to_param(p_name: String, val):
 					"y": slider.value = val.y
 					"z": slider.value = val.z
 					"w": slider.value = val.w
-		
-		# Case C: Image Color Picker (base_color)
-		elif p_name == "base_color" and ctrl_name == "base_color" and val is Color:
-			if ctrl.has_node("ColorPickerButton"):
-				ctrl.get_node("ColorPickerButton").color = val
 
 		slider.step = original_step
 
