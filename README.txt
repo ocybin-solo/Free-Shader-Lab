@@ -1,6 +1,6 @@
 Overview
 
-Free Shader Lab is a high-performance 2D visual synthesizer built in Godot 4.6. It allows you to transform static images into evolving, non-Euclidean geometries using math-heavy shaders (Poincaré, Möbius, and Vortex Lattice).
+Free Shader Lab is a high-performance 2D visual synthesizer built in Godot 4.6. It allows you to transform static images into evolving, non-Euclidean geometries using math-heavy shaders (Poincaré, Möbius, and Vortex Lattice).   Big TY to Godot Developers for making the software available.  The Godot license is available to see here : https://godotengine.org/license/
 
 **Key Features**
 
